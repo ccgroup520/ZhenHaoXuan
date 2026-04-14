@@ -1,0 +1,33 @@
+{
+  "identifier": "com.zhenhaoxuan.storekit",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "48.00",
+      "familyShareable": false,
+      "internalID": "com.zhenhaoxuan.vip.permanent",
+      "localizations": [
+        {
+          "description": "一次性购买，永久享受无限导出",
+          "displayName": "永久会员",
+          "locale": "zh_CN"
+        }
+      ],
+      "productID": "com.zhenhaoxuan.vip.permanent",
+      "referenceName": "VIP Permanent",
+      "type": "NonConsumable"
+    }
+  ],
+  "settings": {
+    "_applicationInternalID": "1234567890",
+    "_developerTeamID": "A45885QBLM",
+    "_lastSynchronizedDate": 1775656000,
+    "_storefront": "CHN",
+    "_storeKitVersion": 3
+  },
+  "subscriptionGroups": [],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}
