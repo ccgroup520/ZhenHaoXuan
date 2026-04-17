@@ -76,15 +76,15 @@
 			children = (
 				AA0001012F84584D00D017C8 /* ZhenHaoXuanApp.swift */,
 				AA0001022F84584D00D017C8 /* ContentView.swift */,
-				AA0003322F84584D00D017C8 /* Views */,
-				AA0003422F84584D00D017C8 /* ViewModels */,
-				AA0003522F84584D00D017C8 /* Models */,
-				AA0003622F84584D00D017C8 /* Services */,
-				AA0003722F84584D00D017C8 /* Managers */,
+				AA000332F84584D00D017C8 /* Views */,
+				AA000342F84584D00D017C8 /* ViewModels */,
+				AA000352F84584D00D017C8 /* Models */,
+				AA000362F84584D00D017C8 /* Services */,
+				AA000372F84584D00D017C8 /* Managers */,
 				AA0001132F84584D00D017C8 /* Assets.xcassets */,
 				AA0001142F84584D00D017C8 /* ZhenHaoXuan.entitlements */,
 			);
-			path = "";
+			path = ZhenHaoXuan;
 			sourceTree = "<group>";
 		};
 		AA000322F84584D00D017C8 /* Products */ = {
