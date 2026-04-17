@@ -162,7 +162,7 @@
 			children = (
 				AA00010A2F84584D00D017C8 /* FrameCaptureViewModel.swift */,
 				AA00010B2F84584D00D017C8 /* FrameGalleryViewModel.swift */,
-				AA00010C2F84584D00D00D017C8 /* VideoPlayerViewModel.swift */,
+				AA00010C2F84584D00D017C8 /* VideoPlayerViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
