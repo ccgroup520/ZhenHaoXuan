@@ -17,12 +17,12 @@ struct DraggableProgressBar: View {
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.white.opacity(0.3))
-                    .frame(height: 5)
+                    .fill(Color.white.opacity(0.25))
+                    .frame(height: 3)
 
                 Capsule()
                     .fill(Color.white)
-                    .frame(width: CGFloat(clampedProgress(dragProgress)) * width, height: 5)
+                    .frame(width: CGFloat(clampedProgress(dragProgress)) * width, height: 3)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .contentShape(Rectangle())
@@ -47,7 +47,7 @@ struct DraggableProgressBar: View {
             .accessibilityLabel("播放进度")
             .accessibilityValue("\(Int(clampedProgress(dragProgress) * 100))%")
         }
-        .frame(height: 29)
+        .frame(height: 30)
     }
 
     private func handleDrag(value: DragGesture.Value, width: CGFloat) {
