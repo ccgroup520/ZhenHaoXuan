@@ -13,26 +13,29 @@ struct DraggableProgressBar: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let width = geometry.size.width
+            let totalWidth = geometry.size.width
+            let sidePadding: CGFloat = 8
+            let barWidth = totalWidth - (sidePadding * 2)
 
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Color.white.opacity(0.25))
-                    .frame(height: 3)
+                    .frame(height: 4)
 
                 Capsule()
                     .fill(Color.white)
-                    .frame(width: CGFloat(clampedProgress(dragProgress)) * width, height: 3)
+                    .frame(width: CGFloat(clampedProgress(dragProgress)) * barWidth, height: 4)
             }
+            .padding(.horizontal, sidePadding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        handleDrag(value: value, width: width)
+                        handleDrag(value: value, barWidth: barWidth, totalWidth: totalWidth)
                     }
                     .onEnded { value in
-                        handleDragEnd(value: value, width: width)
+                        handleDragEnd(value: value, barWidth: barWidth, totalWidth: totalWidth)
                     }
             )
             .onAppear {
@@ -50,8 +53,8 @@ struct DraggableProgressBar: View {
         .frame(height: 30)
     }
 
-    private func handleDrag(value: DragGesture.Value, width: CGFloat) {
-        guard width > 0 else { return }
+    private func handleDrag(value: DragGesture.Value, barWidth: CGFloat, totalWidth: CGFloat) {
+        guard barWidth > 0 else { return }
 
         if !isDraggingInternal {
             isDraggingInternal = true
@@ -59,16 +62,16 @@ struct DraggableProgressBar: View {
             onEditingChanged(true)
         }
 
-        let location = value.location.x
-        let newProgress = clampedProgress(location / width)
+        let location = value.location.x - 8
+        let newProgress = clampedProgress(location / barWidth)
         updateDrag(to: newProgress)
     }
 
-    private func handleDragEnd(value: DragGesture.Value, width: CGFloat) {
-        guard width > 0 else { return }
+    private func handleDragEnd(value: DragGesture.Value, barWidth: CGFloat, totalWidth: CGFloat) {
+        guard barWidth > 0 else { return }
 
-        let location = value.location.x
-        let finalProgress = clampedProgress(location / width)
+        let location = value.location.x - 8
+        let finalProgress = clampedProgress(location / barWidth)
         updateDrag(to: finalProgress)
         onSeek(finalProgress * duration)
 
