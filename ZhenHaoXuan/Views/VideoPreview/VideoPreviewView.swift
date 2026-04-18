@@ -96,11 +96,11 @@ struct VideoPreviewView: View {
                         Circle()
                             .stroke(.white.opacity(0.2), lineWidth: 1.5)
                     )
-                    .frame(width: 52, height: 52)
+                    .frame(width: 42, height: 42)
                     .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
 
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.white)
                     .scaleEffect(backButtonScale)
             }
@@ -134,11 +134,11 @@ struct VideoPreviewView: View {
                         Circle()
                             .stroke(.white.opacity(0.2), lineWidth: 1.5)
                     )
-                    .frame(width: 52, height: 52)
+                    .frame(width: 42, height: 42)
                     .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
 
                 Image(systemName: "photo.on.rectangle.angled")
-                    .font(.system(size: 20))
+                    .font(.system(size: 16))
                     .foregroundColor(.white)
                     .scaleEffect(galleryButtonScale)
 
@@ -323,10 +323,10 @@ private struct PlaybackControlOverlay: View {
             ZStack {
                 Circle()
                     .fill(.white.opacity(0.15))
-                    .frame(width: 52, height: 52)
+                    .frame(width: 42, height: 42)
 
                 Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(.system(size: 19, weight: .semibold))
                     .foregroundColor(.white)
                     .scaleEffect(playButtonScale)
             }
@@ -356,10 +356,10 @@ private struct PlaybackControlOverlay: View {
             ZStack {
                 Circle()
                     .fill(.white.opacity(0.15))
-                    .frame(width: 52, height: 52)
+                    .frame(width: 42, height: 42)
 
                 Image(systemName: viewModel.isMuted ? "speaker.slash.fill" : "speaker.wave.3.fill")
-                    .font(.system(size: 22, weight: .medium))
+                    .font(.system(size: 18, weight: .medium))
                     .foregroundColor(.white)
                     .scaleEffect(muteButtonScale)
             }
@@ -463,19 +463,19 @@ private struct FrameActionBar: View {
                         Circle()
                             .stroke(.white.opacity(0.25), lineWidth: 2)
                     )
-                    .frame(width: 76, height: 76)
+                    .frame(width: 61, height: 61)
                     .shadow(color: .black.opacity(0.35), radius: 20, y: 8)
 
                 if captureViewModel.isCapturing {
                     ZStack {
                         Circle()
                             .stroke(.white.opacity(0.3), lineWidth: 4)
-                            .frame(width: 52, height: 52)
+                            .frame(width: 42, height: 42)
 
                         Circle()
                             .trim(from: 0, to: 0.7)
                             .stroke(.white, lineWidth: 4)
-                            .frame(width: 52, height: 52)
+                            .frame(width: 42, height: 42)
                             .rotationEffect(.degrees(rotationAngle))
                     }
                     .onAppear {
@@ -490,12 +490,12 @@ private struct FrameActionBar: View {
                     ZStack {
                         Circle()
                             .fill(.white)
-                            .frame(width: 52, height: 52)
+                            .frame(width: 42, height: 42)
                             .scaleEffect(capturePulse ? 1.15 : 1.0)
                             .animation(.spring(response: 0.4, dampingFraction: 0.6), value: capturePulse)
 
                         Image(systemName: "camera.aperture")
-                            .font(.system(size: 28, weight: .semibold))
+                            .font(.system(size: 22, weight: .semibold))
                             .foregroundColor(.black)
                     }
                 }
@@ -549,11 +549,11 @@ private struct FrameActionBar: View {
                         Circle()
                             .stroke(canStep ? .white.opacity(0.25) : .white.opacity(0.1), lineWidth: 1.5)
                     )
-                    .frame(width: 64, height: 64)
+                    .frame(width: 51, height: 51)
                     .shadow(color: .black.opacity(canStep ? 0.3 : 0.1), radius: canStep ? 16 : 8, y: canStep ? 6 : 3)
 
                 Image(systemName: systemImage)
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(.system(size: 19, weight: .semibold))
                     .foregroundColor(canStep ? .white : .white.opacity(0.4))
                     .scaleEffect(scale.wrappedValue)
             }
