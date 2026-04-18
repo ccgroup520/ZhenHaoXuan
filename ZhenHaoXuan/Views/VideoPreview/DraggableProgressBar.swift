@@ -14,17 +14,17 @@ struct DraggableProgressBar: View {
     var body: some View {
         GeometryReader { geometry in
             let totalWidth = geometry.size.width
-            let sidePadding: CGFloat = 8
+            let sidePadding: CGFloat = 16
             let barWidth = totalWidth - (sidePadding * 2)
 
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Color.white.opacity(0.25))
-                    .frame(height: 4)
+                    .frame(height: 3)
 
                 Capsule()
                     .fill(Color.white)
-                    .frame(width: CGFloat(clampedProgress(dragProgress)) * barWidth, height: 4)
+                    .frame(width: CGFloat(clampedProgress(dragProgress)) * barWidth, height: 3)
             }
             .padding(.horizontal, sidePadding)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -50,7 +50,7 @@ struct DraggableProgressBar: View {
             .accessibilityLabel("播放进度")
             .accessibilityValue("\(Int(clampedProgress(dragProgress) * 100))%")
         }
-        .frame(height: 30)
+        .frame(height: 24)
     }
 
     private func handleDrag(value: DragGesture.Value, barWidth: CGFloat, totalWidth: CGFloat) {
@@ -62,7 +62,7 @@ struct DraggableProgressBar: View {
             onEditingChanged(true)
         }
 
-        let location = value.location.x - 8
+        let location = value.location.x - 16
         let newProgress = clampedProgress(location / barWidth)
         updateDrag(to: newProgress)
     }
@@ -70,7 +70,7 @@ struct DraggableProgressBar: View {
     private func handleDragEnd(value: DragGesture.Value, barWidth: CGFloat, totalWidth: CGFloat) {
         guard barWidth > 0 else { return }
 
-        let location = value.location.x - 8
+        let location = value.location.x - 16
         let finalProgress = clampedProgress(location / barWidth)
         updateDrag(to: finalProgress)
         onSeek(finalProgress * duration)
