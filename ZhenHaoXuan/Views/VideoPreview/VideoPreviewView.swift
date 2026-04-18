@@ -179,12 +179,17 @@ struct VideoPreviewView: View {
         GeometryReader { _ in
             ZStack {
                 if let player = viewModel.player {
-                    NativeVideoPlayerView(player: player)
-                        .onTapGesture {
-                            withAnimation(.easeOut(duration: 0.3)) {
-                                showControls.toggle()
-                            }
+                    NativeVideoPlayerView(
+                        player: player,
+                        onVideoRectUpdate: { ratio in
+                            viewModel.videoContentRatio = ratio
                         }
+                    )
+                    .onTapGesture {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            showControls.toggle()
+                        }
+                    }
                 }
 
                 VStack {
@@ -265,6 +270,7 @@ private struct PlaybackControlOverlay: View {
                     progress: $progress,
                     isDragging: $isDragging,
                     duration: viewModel.duration,
+                    videoContentRatio: viewModel.videoContentRatio,
                     onEditingChanged: { editing in
                         if editing {
                             viewModel.beginScrubbing()
@@ -589,18 +595,23 @@ private func formatFrameRate(_ frameRate: Double) -> String {
 
 struct NativeVideoPlayerView: UIViewRepresentable {
     let player: AVPlayer
+    var onVideoRectUpdate: ((CGFloat) -> Void)?
 
     func makeUIView(context: Context) -> PlayerUIView {
-        PlayerUIView(player: player)
+        let view = PlayerUIView(player: player)
+        view.onVideoRectUpdate = onVideoRectUpdate
+        return view
     }
 
     func updateUIView(_ uiView: PlayerUIView, context: Context) {
         uiView.update(player: player)
+        uiView.onVideoRectUpdate = onVideoRectUpdate
     }
 }
 
 class PlayerUIView: UIView {
     private let playerLayer = AVPlayerLayer()
+    var onVideoRectUpdate: ((CGFloat) -> Void)?
 
     init(player: AVPlayer) {
         super.init(frame: .zero)
@@ -619,6 +630,11 @@ class PlayerUIView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         playerLayer.frame = bounds
+
+        let videoRect = playerLayer.videoRect
+        guard bounds.width > 0, videoRect.width > 0 else { return }
+        let ratio = videoRect.width / bounds.width
+        onVideoRectUpdate?(ratio)
     }
 
     func update(player: AVPlayer) {

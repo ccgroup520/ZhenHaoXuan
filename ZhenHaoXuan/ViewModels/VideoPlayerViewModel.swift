@@ -10,6 +10,7 @@ class VideoPlayerViewModel: ObservableObject {
     @Published var videoURL: URL?
     @Published var frameRate: Double = 30
     @Published var isHDR = false
+    @Published var videoContentRatio: CGFloat = 1.0
 
     private(set) var currentTime: TimeInterval = 0
     var currentTimePublisher: AnyPublisher<TimeInterval, Never> {

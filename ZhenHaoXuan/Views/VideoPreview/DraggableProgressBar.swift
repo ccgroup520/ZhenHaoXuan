@@ -4,6 +4,7 @@ struct DraggableProgressBar: View {
     @Binding var progress: Double
     @Binding var isDragging: Bool
     let duration: Double
+    let videoContentRatio: CGFloat
     let onEditingChanged: (Bool) -> Void
     let onSeek: (Double) -> Void
     let onScrub: (Double) -> Void
@@ -11,11 +12,15 @@ struct DraggableProgressBar: View {
     @State private var dragProgress: Double = 0
     @State private var isDraggingInternal = false
 
+    private let gap: CGFloat = 10
+
     var body: some View {
         GeometryReader { geometry in
             let totalWidth = geometry.size.width
-            let sidePadding: CGFloat = 20
-            let barWidth = totalWidth - (sidePadding * 2)
+            let videoWidth = totalWidth * videoContentRatio
+            let edgeInset = (totalWidth - videoWidth) / 2
+            let sidePadding = edgeInset + gap
+            let barWidth = max(totalWidth - (sidePadding * 2), 0)
 
             ZStack(alignment: .leading) {
                 Capsule()
@@ -32,10 +37,10 @@ struct DraggableProgressBar: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        handleDrag(value: value, barWidth: barWidth, totalWidth: totalWidth)
+                        handleDrag(value: value, barWidth: barWidth, sidePadding: sidePadding)
                     }
                     .onEnded { value in
-                        handleDragEnd(value: value, barWidth: barWidth, totalWidth: totalWidth)
+                        handleDragEnd(value: value, barWidth: barWidth, sidePadding: sidePadding)
                     }
             )
             .onAppear {
@@ -53,7 +58,7 @@ struct DraggableProgressBar: View {
         .frame(height: 20)
     }
 
-    private func handleDrag(value: DragGesture.Value, barWidth: CGFloat, totalWidth: CGFloat) {
+    private func handleDrag(value: DragGesture.Value, barWidth: CGFloat, sidePadding: CGFloat) {
         guard barWidth > 0 else { return }
 
         if !isDraggingInternal {
@@ -62,15 +67,15 @@ struct DraggableProgressBar: View {
             onEditingChanged(true)
         }
 
-        let location = value.location.x - 20
+        let location = value.location.x - sidePadding
         let newProgress = clampedProgress(location / barWidth)
         updateDrag(to: newProgress)
     }
 
-    private func handleDragEnd(value: DragGesture.Value, barWidth: CGFloat, totalWidth: CGFloat) {
+    private func handleDragEnd(value: DragGesture.Value, barWidth: CGFloat, sidePadding: CGFloat) {
         guard barWidth > 0 else { return }
 
-        let location = value.location.x - 20
+        let location = value.location.x - sidePadding
         let finalProgress = clampedProgress(location / barWidth)
         updateDrag(to: finalProgress)
         onSeek(finalProgress * duration)
