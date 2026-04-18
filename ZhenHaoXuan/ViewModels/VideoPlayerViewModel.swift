@@ -143,6 +143,8 @@ class VideoPlayerViewModel: ObservableObject {
     }
     
     func seek(to time: TimeInterval) {
+        guard duration > 0 else { return }
+        
         let bufferTime: TimeInterval = 0.01
         let clampedTime = max(0, min(time, duration - bufferTime))
         let cmTime = CMTime(seconds: clampedTime, preferredTimescale: CMTimeScale(600))
@@ -163,6 +165,8 @@ class VideoPlayerViewModel: ObservableObject {
     }
 
     func seekForScrubbing(to time: TimeInterval) {
+        guard duration > 0 else { return }
+        
         let bufferTime: TimeInterval = 0.01
         let clampedTime = max(0, min(time, duration - bufferTime))
         updateCurrentTime(to: clampedTime)
@@ -199,6 +203,8 @@ class VideoPlayerViewModel: ObservableObject {
     }
 
     func seekPrecise(to time: TimeInterval, resumePlaybackIfNeeded: Bool = false) {
+        guard duration > 0 else { return }
+        
         let bufferTime: TimeInterval = 0.01
         let clampedTime = max(0, min(time, duration - bufferTime))
         updateCurrentTime(to: clampedTime)
@@ -332,6 +338,9 @@ class VideoPlayerViewModel: ObservableObject {
     }
 
     private var scrubTolerance: CMTime {
+        guard frameRate > 0 else {
+            return CMTime(seconds: 1.0 / 60.0, preferredTimescale: CMTimeScale(600))
+        }
         let toleranceSeconds = max(frameDuration * 0.5, 1.0 / 120.0)
         return CMTime(seconds: toleranceSeconds, preferredTimescale: CMTimeScale(600))
     }

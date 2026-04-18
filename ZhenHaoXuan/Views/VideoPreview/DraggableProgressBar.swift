@@ -51,7 +51,7 @@ struct DraggableProgressBar: View {
     }
 
     private func handleDrag(value: DragGesture.Value, width: CGFloat) {
-        guard width > 0 else { return }
+        guard width > 0, duration > 0 else { return }
 
         if !isDraggingInternal {
             isDraggingInternal = true
@@ -65,7 +65,7 @@ struct DraggableProgressBar: View {
     }
 
     private func handleDragEnd(value: DragGesture.Value, width: CGFloat) {
-        guard width > 0 else { return }
+        guard width > 0, duration > 0 else { return }
 
         let location = value.location.x
         let finalProgress = clampedProgress(location / width)
