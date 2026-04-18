@@ -80,7 +80,7 @@ class ExportSettings: ObservableObject {
         if let savedHDREnabled = UserDefaults.standard.object(forKey: hdrEnabledKey) as? Bool {
             self.hdrEnabled = savedHDREnabled
         } else {
-            self.hdrEnabled = VIPManager.shared.canUseHDR
+            self.hdrEnabled = false
         }
     }
 }

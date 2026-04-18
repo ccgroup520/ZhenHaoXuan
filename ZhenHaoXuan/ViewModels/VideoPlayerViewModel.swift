@@ -38,11 +38,17 @@ class VideoPlayerViewModel: ObservableObject {
     }
     
     func loadVideo(url: URL) {
-        cleanup()
-        videoURL = url
-        let asset = AVURLAsset(url: url)
-        
-        Task {
+        Task { [weak self] in
+            guard let self = self else { return }
+            
+            await MainActor.run { [weak self] in
+                guard let self = self else { return }
+                self.cleanup()
+                self.videoURL = url
+            }
+            
+            let asset = AVURLAsset(url: url)
+            
             do {
                 let durationValue = try await asset.load(.duration)
                 let tracks = try await asset.loadTracks(withMediaType: .video)
@@ -52,21 +58,20 @@ class VideoPlayerViewModel: ObservableObject {
                     Self.detectHDR(from: tracks.first)
                 )
 
-                await MainActor.run {
+                await MainActor.run { [weak self] in
+                    guard let self = self else { return }
                     self.duration = durationValue.seconds
                     self.frameRate = detectedFrameRate
                     self.isHDR = hdrDetected && ExportSettings.shared.hdrEnabled
                     
                     print("视频信息 - 时长: \(durationValue.seconds)s, 帧率: \(detectedFrameRate)fps, HDR: \(hdrDetected), 设置HDR: \(ExportSettings.shared.hdrEnabled), 显示HDR: \(self.isHDR)")
-                }
-                
-                let playerItem = AVPlayerItem(asset: asset)
-                
-                if ExportSettings.shared.hdrEnabled {
-                    playerItem.preferredMaximumResolution = CGSize(width: 4096, height: 4096)
-                }
-                
-                await MainActor.run {
+                    
+                    let playerItem = AVPlayerItem(asset: asset)
+                    
+                    if ExportSettings.shared.hdrEnabled {
+                        playerItem.preferredMaximumResolution = CGSize(width: 4096, height: 4096)
+                    }
+                    
                     self.player = AVPlayer(playerItem: playerItem)
                     self.addPeriodicTimeObserver()
                 }
@@ -143,8 +148,6 @@ class VideoPlayerViewModel: ObservableObject {
     }
     
     func seek(to time: TimeInterval) {
-        guard duration > 0 else { return }
-        
         let bufferTime: TimeInterval = 0.01
         let clampedTime = max(0, min(time, duration - bufferTime))
         let cmTime = CMTime(seconds: clampedTime, preferredTimescale: CMTimeScale(600))
@@ -165,8 +168,6 @@ class VideoPlayerViewModel: ObservableObject {
     }
 
     func seekForScrubbing(to time: TimeInterval) {
-        guard duration > 0 else { return }
-        
         let bufferTime: TimeInterval = 0.01
         let clampedTime = max(0, min(time, duration - bufferTime))
         updateCurrentTime(to: clampedTime)
@@ -203,8 +204,6 @@ class VideoPlayerViewModel: ObservableObject {
     }
 
     func seekPrecise(to time: TimeInterval, resumePlaybackIfNeeded: Bool = false) {
-        guard duration > 0 else { return }
-        
         let bufferTime: TimeInterval = 0.01
         let clampedTime = max(0, min(time, duration - bufferTime))
         updateCurrentTime(to: clampedTime)
@@ -338,9 +337,6 @@ class VideoPlayerViewModel: ObservableObject {
     }
 
     private var scrubTolerance: CMTime {
-        guard frameRate > 0 else {
-            return CMTime(seconds: 1.0 / 60.0, preferredTimescale: CMTimeScale(600))
-        }
         let toleranceSeconds = max(frameDuration * 0.5, 1.0 / 120.0)
         return CMTime(seconds: toleranceSeconds, preferredTimescale: CMTimeScale(600))
     }

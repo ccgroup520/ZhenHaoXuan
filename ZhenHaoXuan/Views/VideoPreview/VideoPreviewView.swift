@@ -32,14 +32,10 @@ struct VideoPreviewView: View {
         .statusBarHidden(true)
         .onAppear {
             viewModel.loadVideo(url: videoURL)
+            extractDominantColor()
 
             withAnimation(.easeOut(duration: 0.4)) {
                 showControls = true
-            }
-        }
-        .onChange(of: viewModel.duration) { newDuration in
-            if newDuration > 0 {
-                extractDominantColor()
             }
         }
         .onDisappear {
@@ -614,8 +610,6 @@ class PlayerUIView: UIView {
         playerLayer.videoGravity = .resizeAspect
         playerLayer.needsDisplayOnBoundsChange = true
         
-        configureHDRSupport()
-        
         layer.addSublayer(playerLayer)
     }
 
@@ -631,15 +625,6 @@ class PlayerUIView: UIView {
     func update(player: AVPlayer) {
         if playerLayer.player !== player {
             playerLayer.player = player
-        }
-    }
-    
-    private func configureHDRSupport() {
-        if #available(iOS 15.0, *) {
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let screen = windowScene.screen as? UIScreen {
-                screen.wantsSoftwareDimming = false
-            }
         }
     }
 }
@@ -698,24 +683,14 @@ struct VideoBackgroundView: View {
 extension VideoPreviewView {
     private func extractDominantColor() {
         Task {
+            let asset = AVURLAsset(url: videoURL)
+            let imageGenerator = AVAssetImageGenerator(asset: asset)
+            imageGenerator.appliesPreferredTrackTransform = true
+            imageGenerator.maximumSize = CGSize(width: 100, height: 100)
+            
+            let time = CMTime(seconds: 0.1, preferredTimescale: 600)
+            
             do {
-                let asset = AVURLAsset(url: videoURL)
-                
-                // 先检查视频是否可加载
-                let duration = try await asset.load(.duration)
-                guard duration.seconds > 0 else {
-                    print("视频时长为0，无法提取颜色")
-                    return
-                }
-                
-                let imageGenerator = AVAssetImageGenerator(asset: asset)
-                imageGenerator.appliesPreferredTrackTransform = true
-                imageGenerator.maximumSize = CGSize(width: 100, height: 100)
-                
-                // 使用安全的视频时间
-                let safeTime = min(0.1, duration.seconds * 0.1)
-                let time = CMTime(seconds: safeTime, preferredTimescale: 600)
-                
                 let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
                 let uiImage = UIImage(cgImage: cgImage)
                 
