@@ -195,7 +195,7 @@ struct VideoPreviewView: View {
                         .padding(.bottom, 12)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 36, style: .continuous))
+            .clipped()
         }
     }
 
