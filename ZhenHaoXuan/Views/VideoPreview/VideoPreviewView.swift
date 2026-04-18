@@ -13,7 +13,6 @@ struct VideoPreviewView: View {
     @State private var dominantColor: Color = .black
     @State private var backButtonScale: CGFloat = 1.0
     @State private var galleryButtonScale: CGFloat = 1.0
-    @State private var videoSidePadding: CGFloat = 20
 
     var body: some View {
         ZStack {
@@ -177,10 +176,7 @@ struct VideoPreviewView: View {
     }
 
     private var videoArea: some View {
-        GeometryReader { geometry in
-            let containerSize = geometry.size
-            let naturalSize = viewModel.videoNaturalSize
-
+        GeometryReader { _ in
             ZStack {
                 if let player = viewModel.player {
                     NativeVideoPlayerView(player: player)
@@ -194,48 +190,13 @@ struct VideoPreviewView: View {
                 VStack {
                     Spacer()
 
-                    PlaybackControlOverlay(viewModel: viewModel, sidePadding: videoSidePadding)
+                    PlaybackControlOverlay(viewModel: viewModel)
+                        .padding(.horizontal, 16)
                         .padding(.bottom, 12)
                 }
             }
             .clipped()
-            .onAppear {
-                videoSidePadding = calculateVideoSidePadding(
-                    containerSize: containerSize,
-                    videoSize: naturalSize
-                )
-            }
-            .onChange(of: containerSize) { newSize in
-                videoSidePadding = calculateVideoSidePadding(
-                    containerSize: newSize,
-                    videoSize: naturalSize
-                )
-            }
-            .onChange(of: viewModel.videoNaturalSize) { newSize in
-                videoSidePadding = calculateVideoSidePadding(
-                    containerSize: containerSize,
-                    videoSize: newSize
-                )
-            }
         }
-    }
-
-    private func calculateVideoSidePadding(containerSize: CGSize, videoSize: CGSize) -> CGFloat {
-        guard videoSize.width > 0, videoSize.height > 0,
-              containerSize.width > 0, containerSize.height > 0 else {
-            return 20
-        }
-
-        let videoAspect = videoSize.width / videoSize.height
-        let containerAspect = containerSize.width / containerSize.height
-
-        if videoAspect >= containerAspect {
-            return 0
-        }
-
-        let visibleWidth = containerSize.height * videoAspect
-        let sidePadding = (containerSize.width - visibleWidth) / 2
-        return max(sidePadding + 8, 20)
     }
 
     private var hdrBadge: some View {
@@ -272,7 +233,6 @@ struct VideoPreviewView: View {
 
 private struct PlaybackControlOverlay: View {
     @ObservedObject var viewModel: VideoPlayerViewModel
-    let sidePadding: CGFloat
 
     @State private var progress: Double = 0
     @State private var isDragging = false
@@ -294,7 +254,7 @@ private struct PlaybackControlOverlay: View {
                         .font(.system(size: 13, weight: .medium, design: .monospaced))
                         .foregroundColor(.white.opacity(0.6))
                 }
-                .padding(.horizontal, max(sidePadding - 6, 4))
+                .padding(.horizontal, 6)
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
@@ -323,7 +283,7 @@ private struct PlaybackControlOverlay: View {
                 muteButton
             }
         }
-        .padding(.horizontal, sidePadding)
+        .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 20)
@@ -685,34 +645,34 @@ struct VideoBackgroundView: View {
     
     var body: some View {
         ZStack {
-            Color.black
-            
+            Color.black.opacity(0.7)
+
             color
-                .opacity(0.4)
+                .opacity(0.35)
                 .blendMode(.softLight)
-            
+
             Circle()
-                .fill(color.opacity(0.32))
+                .fill(color.opacity(0.28))
                 .blur(radius: 100)
                 .scaleEffect(animateGradient ? 1.6 : 1.3)
                 .offset(x: animateGradient ? -80 : -120, y: animateGradient ? -180 : -220)
                 .animation(.easeInOut(duration: 6).repeatForever(autoreverses: true), value: animateGradient)
-            
+
             Circle()
-                .fill(color.opacity(0.28))
+                .fill(color.opacity(0.24))
                 .blur(radius: 80)
                 .scaleEffect(animateGradient ? 1.4 : 1.1)
                 .offset(x: animateGradient ? 100 : 60, y: animateGradient ? 130 : 170)
                 .animation(.easeInOut(duration: 7).repeatForever(autoreverses: true).delay(1), value: animateGradient)
-            
+
             Circle()
-                .fill(color.opacity(0.2))
+                .fill(color.opacity(0.17))
                 .blur(radius: 60)
                 .scaleEffect(animateGradient ? 1.2 : 0.9)
                 .offset(x: animateGradient ? -60 : -20, y: animateGradient ? 220 : 180)
                 .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true).delay(2), value: animateGradient)
         }
-        .background(.ultraThinMaterial)
+        .background(.ultraThinMaterial.opacity(0.7))
         .onAppear {
             animateGradient = true
         }

@@ -10,7 +10,6 @@ class VideoPlayerViewModel: ObservableObject {
     @Published var videoURL: URL?
     @Published var frameRate: Double = 30
     @Published var isHDR = false
-    @Published var videoNaturalSize: CGSize = .zero
 
     private(set) var currentTime: TimeInterval = 0
     var currentTimePublisher: AnyPublisher<TimeInterval, Never> {
@@ -54,10 +53,9 @@ class VideoPlayerViewModel: ObservableObject {
                 let durationValue = try await asset.load(.duration)
                 let tracks = try await asset.loadTracks(withMediaType: .video)
                 
-                let (detectedFrameRate, hdrDetected, naturalSize) = await (
+                let (detectedFrameRate, hdrDetected) = await (
                     Self.resolveFrameRate(from: tracks.first),
-                    Self.detectHDR(from: tracks.first),
-                    Self.resolveNaturalSize(from: tracks.first)
+                    Self.detectHDR(from: tracks.first)
                 )
 
                 await MainActor.run { [weak self] in
@@ -65,7 +63,6 @@ class VideoPlayerViewModel: ObservableObject {
                     self.duration = durationValue.seconds
                     self.frameRate = detectedFrameRate
                     self.isHDR = hdrDetected && ExportSettings.shared.hdrEnabled
-                    self.videoNaturalSize = naturalSize
                     
                     print("视频信息 - 时长: \(durationValue.seconds)s, 帧率: \(detectedFrameRate)fps, HDR: \(hdrDetected), 设置HDR: \(ExportSettings.shared.hdrEnabled), 显示HDR: \(self.isHDR)")
                     
@@ -283,16 +280,6 @@ class VideoPlayerViewModel: ObservableObject {
     
     deinit {
         cleanup()
-    }
-
-    private static func resolveNaturalSize(from track: AVAssetTrack?) async -> CGSize {
-        guard let track else { return .zero }
-        do {
-            let size = try await track.load(.naturalSize)
-            return size
-        } catch {
-            return .zero
-        }
     }
 
     private static func resolveFrameRate(from track: AVAssetTrack?) async -> Double {
