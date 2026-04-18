@@ -10,13 +10,12 @@ struct VideoPreviewView: View {
 
     @State private var showControls = false
     @State private var showGallery = false
-    @State private var dominantColor: Color = .black
     @State private var backButtonScale: CGFloat = 1.0
     @State private var galleryButtonScale: CGFloat = 1.0
 
     var body: some View {
         ZStack {
-            VideoBackgroundView(color: dominantColor)
+            VideoBackgroundView(videoURL: videoURL)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -32,7 +31,6 @@ struct VideoPreviewView: View {
         .statusBarHidden(true)
         .onAppear {
             viewModel.loadVideo(url: videoURL)
-            extractDominantColor()
 
             withAnimation(.easeOut(duration: 0.4)) {
                 showControls = true
@@ -641,52 +639,40 @@ struct VideoPreviewView_Previews: PreviewProvider {
 }
 
 struct VideoBackgroundView: View {
-    let color: Color
-    @State private var animateGradient = false
+    let videoURL: URL
+    @State private var blurredImage: UIImage?
+    @State private var isLoading = true
     
     var body: some View {
         ZStack {
             Color.black
             
-            color
-                .opacity(0.5)
-                .blendMode(.softLight)
-            
-            Circle()
-                .fill(color.opacity(0.4))
-                .blur(radius: 100)
-                .scaleEffect(animateGradient ? 1.6 : 1.3)
-                .offset(x: animateGradient ? -80 : -120, y: animateGradient ? -180 : -220)
-                .animation(.easeInOut(duration: 6).repeatForever(autoreverses: true), value: animateGradient)
-            
-            Circle()
-                .fill(color.opacity(0.35))
-                .blur(radius: 80)
-                .scaleEffect(animateGradient ? 1.4 : 1.1)
-                .offset(x: animateGradient ? 100 : 60, y: animateGradient ? 130 : 170)
-                .animation(.easeInOut(duration: 7).repeatForever(autoreverses: true).delay(1), value: animateGradient)
-            
-            Circle()
-                .fill(color.opacity(0.25))
-                .blur(radius: 60)
-                .scaleEffect(animateGradient ? 1.2 : 0.9)
-                .offset(x: animateGradient ? -60 : -20, y: animateGradient ? 220 : 180)
-                .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true).delay(2), value: animateGradient)
+            if let image = blurredImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+                    .overlay(
+                        Color.black.opacity(0.3)
+                    )
+            }
         }
-        .background(.ultraThinMaterial)
         .onAppear {
-            animateGradient = true
+            loadBlurredBackground()
+        }
+        .onChange(of: videoURL) { _ in
+            loadBlurredBackground()
         }
     }
-}
-
-extension VideoPreviewView {
-    private func extractDominantColor() {
+    
+    private func loadBlurredBackground() {
+        isLoading = true
+        
         Task {
             let asset = AVURLAsset(url: videoURL)
             let imageGenerator = AVAssetImageGenerator(asset: asset)
             imageGenerator.appliesPreferredTrackTransform = true
-            imageGenerator.maximumSize = CGSize(width: 100, height: 100)
+            imageGenerator.maximumSize = CGSize(width: 50, height: 50)
             
             let time = CMTime(seconds: 0.1, preferredTimescale: 600)
             
@@ -694,55 +680,39 @@ extension VideoPreviewView {
                 let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
                 let uiImage = UIImage(cgImage: cgImage)
                 
-                if let dominant = uiImage.dominantColor() {
+                // 应用高斯模糊
+                if let blurred = await applyBlur(to: uiImage, radius: 80) {
                     await MainActor.run {
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            self.dominantColor = dominant
-                        }
+                        self.blurredImage = blurred
+                        self.isLoading = false
                     }
                 }
             } catch {
-                print("提取视频颜色失败: \(error.localizedDescription)")
+                print("加载背景图片失败: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.isLoading = false
+                }
             }
         }
     }
+    
+    private func applyBlur(to image: UIImage, radius: CGFloat) async -> UIImage? {
+        guard let cgImage = image.cgImage else { return nil }
+        
+        let ciImage = CIImage(cgImage: cgImage)
+        
+        guard let blurFilter = CIFilter(name: "CIGaussianBlur") else { return nil }
+        blurFilter.setValue(ciImage, forKey: kCIInputImageKey)
+        blurFilter.setValue(radius, forKey: kCIInputRadiusKey)
+        
+        guard let outputImage = blurFilter.outputImage else { return nil }
+        
+        let context = CIContext(options: nil)
+        guard let cgOutputImage = context.createCGImage(outputImage, from: outputImage.extent) else { return nil }
+        
+        return UIImage(cgImage: cgOutputImage)
+    }
 }
 
-extension UIImage {
-    func dominantColor() -> Color? {
-        guard let inputImage = CIImage(image: self) else { return nil }
-        
-        let extentVector = CIVector(
-            x: inputImage.extent.origin.x,
-            y: inputImage.extent.origin.y,
-            z: inputImage.extent.size.width,
-            w: inputImage.extent.size.height
-        )
-        
-        guard let filter = CIFilter(
-            name: "CIAreaAverage",
-            parameters: [kCIInputImageKey: inputImage, kCIInputExtentKey: extentVector]
-        ),
-              let outputImage = filter.outputImage else {
-            return nil
-        }
-        
-        var bitmap = [UInt8](repeating: 0, count: 4)
-        let context = CIContext(options: [.workingColorSpace: kCFNull as Any])
-        
-        context.render(
-            outputImage,
-            toBitmap: &bitmap,
-            rowBytes: 4,
-            bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
-            format: .RGBA8,
-            colorSpace: nil
-        )
-        
-        return Color(
-            red: Double(bitmap[0]) / 255,
-            green: Double(bitmap[1]) / 255,
-            blue: Double(bitmap[2]) / 255
-        )
-    }
+extension VideoPreviewView {
 }
