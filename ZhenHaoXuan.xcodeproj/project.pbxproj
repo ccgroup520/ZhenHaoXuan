@@ -25,6 +25,8 @@
 		AA0000102F84584D00D017C8 /* ImageExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001102F84584D00D017C8 /* ImageExportService.swift */; };
 		AA0000112F84584D00D017C8 /* VIPManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001112F84584D00D017C8 /* VIPManager.swift */; };
 		AA0000122F84584D00D017C8 /* UserProfileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001122F84584D00D017C8 /* UserProfileManager.swift */; };
+		AA0000202F84584D00D017C8 /* FrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001202F84584D00D017C8 /* FrameStore.swift */; };
+		AA0000212F84584D00D017C8 /* MediaTempStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001212F84584D00D017C8 /* MediaTempStore.swift */; };
 		AA0000132F84584D00D017C8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0001132F84584D00D017C8 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -47,6 +49,8 @@
 		AA0001102F84584D00D017C8 /* ImageExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageExportService.swift; sourceTree = "<group>"; };
 		AA0001112F84584D00D017C8 /* VIPManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VIPManager.swift; sourceTree = "<group>"; };
 		AA0001122F84584D00D017C8 /* UserProfileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileManager.swift; sourceTree = "<group>"; };
+		AA0001202F84584D00D017C8 /* FrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStore.swift; sourceTree = "<group>"; };
+		AA0001212F84584D00D017C8 /* MediaTempStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTempStore.swift; sourceTree = "<group>"; };
 		AA0001132F84584D00D017C8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA0001142F84584D00D017C8 /* ZhenHaoXuan.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ZhenHaoXuan.entitlements; sourceTree = "<group>"; };
 		AA0001152F84584D00D017C8 /* ZhenHaoXuan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZhenHaoXuan.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -132,6 +136,8 @@
 			children = (
 				AA00010F2F84584D00D017C8 /* FrameExtractorService.swift */,
 				AA0001102F84584D00D017C8 /* ImageExportService.swift */,
+				AA0001202F84584D00D017C8 /* FrameStore.swift */,
+				AA0001212F84584D00D017C8 /* MediaTempStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -281,6 +287,8 @@
 				AA0000102F84584D00D017C8 /* ImageExportService.swift in Sources */,
 				AA0000112F84584D00D017C8 /* VIPManager.swift in Sources */,
 				AA0000122F84584D00D017C8 /* UserProfileManager.swift in Sources */,
+				AA0000202F84584D00D017C8 /* FrameStore.swift in Sources */,
+				AA0000212F84584D00D017C8 /* MediaTempStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -410,7 +418,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = A45885QBLM;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于把你导出的画面保存到系统相册。";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "用于读取你选择的视频或 Live Photo，以便从中提取画面帧。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -438,7 +447,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = A45885QBLM;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于把你导出的画面保存到系统相册。";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "用于读取你选择的视频或 Live Photo，以便从中提取画面帧。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

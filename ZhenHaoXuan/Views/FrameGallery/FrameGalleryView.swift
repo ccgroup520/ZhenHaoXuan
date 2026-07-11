@@ -417,7 +417,7 @@ struct FrameItemView: View {
     private var imageContent: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .bottomLeading) {
-                Image(uiImage: frame.image)
+                Image(uiImage: frame.thumbnail)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(height: 170)

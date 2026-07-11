@@ -61,6 +61,10 @@ struct HomeView: View {
                 viewModel: playerViewModel,
                 captureViewModel: captureViewModel,
                 onBack: {
+                    // 退出预览时删除本次复制的临时视频，避免残留占用存储。
+                    if let url = selectedVideoURL {
+                        MediaTempStore.remove(url)
+                    }
                     selectedVideoURL = nil
                 }
             )

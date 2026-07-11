@@ -82,8 +82,7 @@ struct VideoPickerView: UIViewControllerRepresentable {
                         }
                         
                         let sourceURL = urlAsset.url
-                        let tempDirectory = FileManager.default.temporaryDirectory
-                        let destinationURL = tempDirectory.appendingPathComponent(UUID().uuidString + "-" + sourceURL.lastPathComponent)
+                        let destinationURL = MediaTempStore.makeDestinationURL(for: sourceURL)
                         
                         do {
                             try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
@@ -144,8 +143,7 @@ struct VideoPickerView: UIViewControllerRepresentable {
                             return
                         }
                         
-                        let tempDirectory = FileManager.default.temporaryDirectory
-                        let destinationURL = tempDirectory.appendingPathComponent(UUID().uuidString + "-" + sourceURL.lastPathComponent)
+                        let destinationURL = MediaTempStore.makeDestinationURL(for: sourceURL)
                         
                         do {
                             try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
