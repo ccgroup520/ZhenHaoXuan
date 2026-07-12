@@ -1,33 +1,89 @@
 {
-  "identifier": "com.zhenhaoxuan.storekit",
-  "nonRenewingSubscriptions": [],
-  "products": [
+  "identifier" : "com.zhenhaoxuan.storekit",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
     {
-      "displayPrice": "48.00",
-      "familyShareable": false,
-      "internalID": "com.zhenhaoxuan.vip.permanent",
-      "localizations": [
+      "displayPrice" : "48.00",
+      "familyShareable" : false,
+      "internalID" : "com.zhenhaoxuan.vip.permanent",
+      "localizations" : [
         {
-          "description": "一次性购买，永久享受无限导出",
-          "displayName": "永久会员",
-          "locale": "zh_CN"
+          "description" : "一次性购买，永久享受无限导出",
+          "displayName" : "永久会员",
+          "locale" : "zh_CN"
         }
       ],
-      "productID": "com.zhenhaoxuan.vip.permanent",
-      "referenceName": "VIP Permanent",
-      "type": "NonConsumable"
+      "productID" : "com.zhenhaoxuan.vip.permanent",
+      "referenceName" : "VIP Permanent",
+      "type" : "NonConsumable"
     }
   ],
-  "settings": {
-    "_applicationInternalID": "1234567890",
-    "_developerTeamID": "A45885QBLM",
-    "_lastSynchronizedDate": 1775656000,
-    "_storefront": "CHN",
-    "_storeKitVersion": 3
+  "settings" : {
+    "_applicationInternalID" : "1234567890",
+    "_developerTeamID" : "A45885QBLM",
+    "_lastSynchronizedDate" : 1775656000,
+    "_storefront" : "CHN",
+    "_storeKitVersion" : 3
   },
-  "subscriptionGroups": [],
-  "version": {
-    "major": 3,
-    "minor": 0
+  "subscriptionGroups" : [
+    {
+      "id" : "vip_subscriptions",
+      "localizations" : [
+        {
+          "locale" : "zh_CN",
+          "name" : "会员订阅"
+        }
+      ],
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "autoRenewalProductId" : "com.zhenhaoxuan.vip.monthly",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "com.zhenhaoxuan.vip.monthly",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "无限导出，每月自动续费",
+              "displayName" : "月度会员",
+              "locale" : "zh_CN"
+            }
+          ],
+          "productID" : "com.zhenhaoxuan.vip.monthly",
+          "referenceName" : "VIP Monthly",
+          "subscriptionGroupID" : "vip_subscriptions",
+          "type" : "AutoRenewable"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "autoRenewalProductId" : "com.zhenhaoxuan.vip.yearly",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "com.zhenhaoxuan.vip.yearly",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "无限导出，每年自动续费",
+              "displayName" : "年度会员",
+              "locale" : "zh_CN"
+            }
+          ],
+          "productID" : "com.zhenhaoxuan.vip.yearly",
+          "referenceName" : "VIP Yearly",
+          "subscriptionGroupID" : "vip_subscriptions",
+          "type" : "AutoRenewable"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
   }
 }

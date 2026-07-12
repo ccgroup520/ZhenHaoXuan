@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab = 0
-    @State private var showVIPOnLaunch = false
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -25,9 +24,6 @@ struct ContentView: View {
                 .tag(1)
         }
         .tint(AppPalette.brandBlue)
-        .sheet(isPresented: $showVIPOnLaunch) {
-            VIPMembershipView()
-        }
     }
 }
 

@@ -195,9 +195,9 @@ struct VIPMembershipView: View {
                 switch selectedPlan {
                 case .monthly:
                     await vipManager.purchaseMonthly()
-                case .yearly:
-                    await vipManager.purchaseMonthly()
-                case .permanent:
+               case .yearly:
+                    await vipManager.purchaseYearly()
+               case .permanent:
                     await vipManager.purchasePermanent()
                 }
             }

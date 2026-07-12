@@ -11,11 +11,12 @@ struct FrameGalleryView: View {
     @ObservedObject private var vipManager = VIPManager.shared
     @State private var selectedFrames: Set<UUID> = []
     @State private var showExportSuccess = false
-    @State private var showExportLimitAlert = false
-    @State private var showVIPUpgradeAlert = false
-    @State private var pendingExportCount = 0
-    @State private var appeared = false
-    @State private var selectedCount = 0
+   @State private var showExportLimitAlert = false
+   @State private var showVIPUpgradeAlert = false
+   @State private var pendingExportCount = 0
+   @State private var appeared = false
+   /// 记录当前正在进行的导出操作需要多少张额度
+   @State private var activeExportCount: Int = 0
 
     private var gridItemLayout: [GridItem] {
         [GridItem(.adaptive(minimum: 160), spacing: 16)]
@@ -63,7 +64,10 @@ struct FrameGalleryView: View {
                 Text("图片已保存到相册")
             }
             .alert("导出次数限制", isPresented: $showExportLimitAlert) {
-                Button("取消", role: .cancel) {}
+                Button("取消", role: .cancel) {
+                    vipManager.releaseExportQuota(count: activeExportCount)
+                    activeExportCount = 0
+                }
                 Button("升级会员") { showVIPUpgradeAlert = true }
             } message: {
                 if vipManager.isPaidUser {
@@ -73,24 +77,17 @@ struct FrameGalleryView: View {
                 }
             }
             .alert("导出失败", isPresented: exportErrorBinding) {
-                Button("确定", role: .cancel) { viewModel.errorMessage = nil }
+                Button("确定", role: .cancel) {
+                    viewModel.errorMessage = nil
+                    vipManager.releaseExportQuota(count: activeExportCount)
+                    activeExportCount = 0
+                }
             } message: {
                 Text(viewModel.errorMessage ?? "导出失败，请稍后重试。")
             }
-            .sheet(isPresented: $showVIPUpgradeAlert) {
-                VIPMembershipView()
-            }
-            .onAppear {
-                appeared = false
-                withAnimation(.easeOut(duration: 0.6)) {
-                    appeared = true
-                }
-            }
-        }
-        .onChange(of: selectedFrames) { newValue in
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                selectedCount = newValue.count
-            }
+           .sheet(isPresented: $showVIPUpgradeAlert) {
+               VIPMembershipView()
+           }
         }
     }
 
@@ -189,7 +186,7 @@ struct FrameGalleryView: View {
                         .font(.title2)
                         .fontWeight(.bold)
 
-                    Text(selectedCount == 0 ? "轻点选择" : "已选择 \(selectedCount) 张")
+                    Text(selectedFrames.count == 0 ? "轻点选择" : "已选择 \(selectedFrames.count) 张")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -199,7 +196,7 @@ struct FrameGalleryView: View {
                 membershipBadge
             }
 
-            if selectedCount > 0 {
+            if selectedFrames.count > 0 {
                 selectionToolbar
             }
         }
@@ -242,7 +239,7 @@ struct FrameGalleryView: View {
             .tint(AppPalette.brandBlue)
 
             Button(action: selectAll) {
-                Text(selectedCount == frames.count ? "取消全选" : "全选")
+                Text(selectedFrames.count == frames.count ? "取消全选" : "全选")
                     .font(.subheadline)
                     .fontWeight(.medium)
             }
@@ -268,7 +265,7 @@ struct FrameGalleryView: View {
                 FrameItemView(
                     frame: frame,
                     isSelected: selectedFrames.contains(frame.id),
-                    isEditing: selectedCount > 0,
+                    isEditing: selectedFrames.count > 0,
                     onTap: { toggleSelection(frame.id) },
                     onExport: { checkAndExportSingle(frame) },
                     onDelete: { deleteSingleFrame(frame.id) }
@@ -290,6 +287,8 @@ struct FrameGalleryView: View {
         )
     }
 
+    // MARK: - Actions
+
     private func toggleSelection(_ id: UUID) {
         if selectedFrames.contains(id) {
             selectedFrames.remove(id)
@@ -299,40 +298,69 @@ struct FrameGalleryView: View {
     }
 
     private func selectAll() {
-        if selectedCount == frames.count {
+        if selectedFrames.count == frames.count {
             selectedFrames.removeAll()
         } else {
             selectedFrames = Set(frames.map { $0.id })
         }
     }
 
+    // MARK: - Export with Reserve Pattern
+
+    /// 导出流程：预扣额度 → 执行导出 → 确认/释放
+    /// 像银行取钱：先冻结余额 → 取款 → 成功则扣款，失败则解冻
+
     private func checkAndExportSelected() {
         let framesToExport = frames.filter { selectedFrames.contains($0.id) }
         guard !framesToExport.isEmpty else { return }
-        checkExportLimit(count: framesToExport.count) { exportSelected(framesToExport) }
+        checkExportLimit(count: framesToExport.count) {
+            exportSelected(framesToExport)
+        }
     }
 
     private func checkAndExportAll() {
         guard !frames.isEmpty else { return }
-        checkExportLimit(count: frames.count) { exportAll() }
+        checkExportLimit(count: frames.count) {
+            exportAll()
+        }
     }
 
     private func checkAndExportSingle(_ frame: CapturedFrame) {
-        checkExportLimit(count: 1) { exportSingle(frame) }
+        checkExportLimit(count: 1) {
+            exportSingle(frame)
+        }
     }
 
+    /// 预扣模式：先冻结额度，成功再扣款，失败则释放
     private func checkExportLimit(count: Int, performExport: @escaping () -> Void) {
-        if vipManager.isPaidUser { performExport(); return }
-        if vipManager.remainingExports >= count { performExport() }
-        else { pendingExportCount = count; showExportLimitAlert = true }
+        // 永久会员直接放行
+        if vipManager.isPaidUser {
+            performExport()
+            return
+        }
+
+        // 尝试预扣额度
+        guard vipManager.reserveExportQuota(count: count) else {
+            pendingExportCount = count
+            activeExportCount = count
+            showExportLimitAlert = true
+            return
+        }
+
+        activeExportCount = count
+        performExport()
     }
 
     private func exportSelected(_ framesToExport: [CapturedFrame]) {
         viewModel.exportFrames(framesToExport) { success in
             if success {
-                vipManager.recordExport(count: framesToExport.count)
+                vipManager.confirmExport(count: framesToExport.count)
+                activeExportCount = 0
                 showExportSuccess = true
                 selectedFrames.removeAll()
+            } else {
+                vipManager.releaseExportQuota(count: framesToExport.count)
+                activeExportCount = 0
             }
         }
     }
@@ -340,8 +368,12 @@ struct FrameGalleryView: View {
     private func exportAll() {
         viewModel.exportFrames(frames) { success in
             if success {
-                vipManager.recordExport(count: frames.count)
+                vipManager.confirmExport(count: frames.count)
+                activeExportCount = 0
                 showExportSuccess = true
+            } else {
+                vipManager.releaseExportQuota(count: frames.count)
+                activeExportCount = 0
             }
         }
     }
@@ -349,8 +381,12 @@ struct FrameGalleryView: View {
     private func exportSingle(_ frame: CapturedFrame) {
         viewModel.exportSingleFrame(frame) { success in
             if success {
-                vipManager.recordExport(count: 1)
+                vipManager.confirmExport(count: 1)
+                activeExportCount = 0
                 showExportSuccess = true
+            } else {
+                vipManager.releaseExportQuota(count: 1)
+                activeExportCount = 0
             }
         }
     }
@@ -453,11 +489,20 @@ struct FrameItemView: View {
 
     private var infoOverlay: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(frame.videoName)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(.white)
-                .lineLimit(1)
+            HStack(spacing: 6) {
+                Text(frame.videoName)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+
+                // Live Photo 标记
+                if case .livePhoto = frame.source {
+                    Image(systemName: "livephoto")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+            }
 
             HStack(spacing: 8) {
                 infoTag(text: formatTimestamp(frame.timestamp), systemImage: "clock")

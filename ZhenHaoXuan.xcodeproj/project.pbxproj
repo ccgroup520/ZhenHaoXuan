@@ -25,9 +25,11 @@
 		AA0000102F84584D00D017C8 /* ImageExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001102F84584D00D017C8 /* ImageExportService.swift */; };
 		AA0000112F84584D00D017C8 /* VIPManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001112F84584D00D017C8 /* VIPManager.swift */; };
 		AA0000122F84584D00D017C8 /* UserProfileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001122F84584D00D017C8 /* UserProfileManager.swift */; };
+		AA0000132F84584D00D017C8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0001132F84584D00D017C8 /* Assets.xcassets */; };
 		AA0000202F84584D00D017C8 /* FrameStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001202F84584D00D017C8 /* FrameStore.swift */; };
 		AA0000212F84584D00D017C8 /* MediaTempStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001212F84584D00D017C8 /* MediaTempStore.swift */; };
-		AA0000132F84584D00D017C8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0001132F84584D00D017C8 /* Assets.xcassets */; };
+		AA0000222F84584D00D017C8 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001222F84584D00D017C8 /* KeychainManager.swift */; };
+		AA0000232F84584D00D017C8 /* LivePhotoExtractorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001232F84584D00D017C8 /* LivePhotoExtractorService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,11 +51,13 @@
 		AA0001102F84584D00D017C8 /* ImageExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageExportService.swift; sourceTree = "<group>"; };
 		AA0001112F84584D00D017C8 /* VIPManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VIPManager.swift; sourceTree = "<group>"; };
 		AA0001122F84584D00D017C8 /* UserProfileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileManager.swift; sourceTree = "<group>"; };
-		AA0001202F84584D00D017C8 /* FrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStore.swift; sourceTree = "<group>"; };
-		AA0001212F84584D00D017C8 /* MediaTempStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTempStore.swift; sourceTree = "<group>"; };
 		AA0001132F84584D00D017C8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA0001142F84584D00D017C8 /* ZhenHaoXuan.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ZhenHaoXuan.entitlements; sourceTree = "<group>"; };
 		AA0001152F84584D00D017C8 /* ZhenHaoXuan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZhenHaoXuan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0001202F84584D00D017C8 /* FrameStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameStore.swift; sourceTree = "<group>"; };
+		AA0001212F84584D00D017C8 /* MediaTempStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTempStore.swift; sourceTree = "<group>"; };
+		AA0001222F84584D00D017C8 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		AA0001232F84584D00D017C8 /* LivePhotoExtractorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoExtractorService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -138,6 +142,8 @@
 				AA0001102F84584D00D017C8 /* ImageExportService.swift */,
 				AA0001202F84584D00D017C8 /* FrameStore.swift */,
 				AA0001212F84584D00D017C8 /* MediaTempStore.swift */,
+				AA0001222F84584D00D017C8 /* KeychainManager.swift */,
+				AA0001232F84584D00D017C8 /* LivePhotoExtractorService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -228,7 +234,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					AA0004012F84584D00D017C8 = {
 						CreatedOnToolsVersion = 26.3;
@@ -289,6 +295,8 @@
 				AA0000122F84584D00D017C8 /* UserProfileManager.swift in Sources */,
 				AA0000202F84584D00D017C8 /* FrameStore.swift in Sources */,
 				AA0000212F84584D00D017C8 /* MediaTempStore.swift in Sources */,
+				AA0000222F84584D00D017C8 /* KeychainManager.swift in Sources */,
+				AA0000232F84584D00D017C8 /* LivePhotoExtractorService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -328,8 +336,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = A45885QBLM;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -349,6 +359,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -389,8 +400,10 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = A45885QBLM;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -402,6 +415,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -416,7 +430,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = A45885QBLM;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于把你导出的画面保存到系统相册。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "用于读取你选择的视频或 Live Photo，以便从中提取画面帧。";
@@ -445,7 +458,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = A45885QBLM;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于把你导出的画面保存到系统相册。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "用于读取你选择的视频或 Live Photo，以便从中提取画面帧。";

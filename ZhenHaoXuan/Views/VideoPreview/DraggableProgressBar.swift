@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct DraggableProgressBar: View {
+    private let sidePadding: CGFloat = 20
+
     @Binding var progress: Double
     @Binding var isDragging: Bool
     let duration: Double
@@ -14,7 +16,6 @@ struct DraggableProgressBar: View {
     var body: some View {
         GeometryReader { geometry in
             let totalWidth = geometry.size.width
-            let sidePadding: CGFloat = 20
             let barWidth = totalWidth - (sidePadding * 2)
 
             ZStack(alignment: .leading) {
@@ -62,7 +63,7 @@ struct DraggableProgressBar: View {
             onEditingChanged(true)
         }
 
-        let location = value.location.x - 20
+        let location = value.location.x - sidePadding
         let newProgress = clampedProgress(location / barWidth)
         updateDrag(to: newProgress)
     }
@@ -70,7 +71,7 @@ struct DraggableProgressBar: View {
     private func handleDragEnd(value: DragGesture.Value, barWidth: CGFloat, totalWidth: CGFloat) {
         guard barWidth > 0 else { return }
 
-        let location = value.location.x - 20
+        let location = value.location.x - sidePadding
         let finalProgress = clampedProgress(location / barWidth)
         updateDrag(to: finalProgress)
         onSeek(finalProgress * duration)

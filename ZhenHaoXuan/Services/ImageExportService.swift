@@ -4,193 +4,164 @@ import UIKit
 import ImageIO
 import MobileCoreServices
 
-class ImageExportService {
+/// 图片导出服务。
+///
+/// 通俗解释：这是"打印店"，把 App 里捕获的图片"打印"到系统相册。
+/// 支持单张/批量打印，PNG/JPEG 格式，可调质量。
+///
+/// 优化：统一用 async/await，扔掉了 GCD 和嵌套回调。
+actor ImageExportService {
     static let shared = ImageExportService()
-    
-    private let exportSettings = ExportSettings.shared
-    
+
+
     private init() {}
-    
-    func exportToPhotoLibrary(image: UIImage, completion: @escaping (Result<Void, Error>) -> Void) {
-        requestAddOnlyAuthorization { [weak self] authResult in
-            guard let self else { return }
 
-            switch authResult {
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-            case .success:
-                guard let encodedImage = self.encodedImage(from: image, index: 0) else {
-                    DispatchQueue.main.async {
-                        completion(.failure(ImageExportError.encodingFailed))
-                    }
-                    return
-                }
+    func exportToPhotoLibrary(image: UIImage) async throws {
+        try await requestAddOnlyAuthorization()
 
-                PHPhotoLibrary.shared().performChanges({
-                    let request = PHAssetCreationRequest.forAsset()
-                    let options = PHAssetResourceCreationOptions()
-                    options.originalFilename = encodedImage.filename
-                    request.addResource(with: .photo, data: encodedImage.data, options: options)
-                }) { success, error in
-                    DispatchQueue.main.async {
-                        if success {
-                            completion(.success(()))
-                        } else {
-                            completion(.failure(error ?? ImageExportError.exportFailed))
-                        }
-                    }
-                }
-            }
+        guard let encoded = await encodedImage(from: image, index: 0) else {
+            throw ImageExportError.encodingFailed
+        }
+
+        try await PHPhotoLibrary.shared().performChanges {
+            let request = PHAssetCreationRequest.forAsset()
+            let options = PHAssetResourceCreationOptions()
+            options.originalFilename = encoded.filename
+            request.addResource(with: .photo, data: encoded.data, options: options)
         }
     }
-    
-    func exportMultipleToPhotoLibrary(images: [UIImage], completion: @escaping (Result<Int, Error>) -> Void) {
-        guard !images.isEmpty else {
-            DispatchQueue.main.async {
-                completion(.success(0))
+
+    func exportMultipleToPhotoLibrary(images: [UIImage]) async throws -> Int {
+        guard !images.isEmpty else { return 0 }
+
+        try await requestAddOnlyAuthorization()
+
+        let encodedImages: [EncodedImage] = await withTaskGroup(of: (Int, EncodedImage?).self) { group in
+            for (index, image) in images.enumerated() {
+                group.addTask {
+                    let encoded = await self.encodedImage(from: image, index: index)
+                    return (index, encoded)
+                }
             }
+
+            var results = [(Int, EncodedImage)]()
+            for await (index, encoded) in group {
+                if let encoded = encoded {
+                    results.append((index, encoded))
+                }
+            }
+            return results.sorted { $0.0 < $1.0 }.map { $0.1 }
+        }
+
+        guard encodedImages.count == images.count else {
+            throw ImageExportError.encodingFailed
+        }
+
+        try await PHPhotoLibrary.shared().performChanges {
+            for encoded in encodedImages {
+                let request = PHAssetCreationRequest.forAsset()
+                let options = PHAssetResourceCreationOptions()
+                options.originalFilename = encoded.filename
+                request.addResource(with: .photo, data: encoded.data, options: options)
+            }
+        }
+
+        return encodedImages.count
+    }
+
+    // MARK: - Private
+
+    private func requestAddOnlyAuthorization() async throws {
+        let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        switch status {
+        case .authorized, .limited:
             return
-        }
-
-        requestAddOnlyAuthorization { [weak self] authResult in
-            guard let self else { return }
-
-            switch authResult {
-            case .failure(let error):
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-            case .success:
-                let encodedImages = images.enumerated().compactMap { index, image in
-                    self.encodedImage(from: image, index: index)
-                }
-
-                guard encodedImages.count == images.count else {
-                    DispatchQueue.main.async {
-                        completion(.failure(ImageExportError.encodingFailed))
-                    }
-                    return
-                }
-
-                PHPhotoLibrary.shared().performChanges({
-                    for encodedImage in encodedImages {
-                        let request = PHAssetCreationRequest.forAsset()
-                        let options = PHAssetResourceCreationOptions()
-                        options.originalFilename = encodedImage.filename
-                        request.addResource(with: .photo, data: encodedImage.data, options: options)
-                    }
-                }) { success, error in
-                    DispatchQueue.main.async {
-                        if success {
-                            completion(.success(encodedImages.count))
-                        } else {
-                            completion(.failure(error ?? ImageExportError.exportFailed))
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    private func requestAddOnlyAuthorization(completion: @escaping (Result<Void, Error>) -> Void) {
-        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-            switch status {
-            case .authorized, .limited:
-                completion(.success(()))
-            default:
-                completion(.failure(ImageExportError.permissionDenied))
-            }
+        default:
+            throw ImageExportError.permissionDenied
         }
     }
 
-    private func encodedImage(from image: UIImage, index: Int) -> EncodedImage? {
-        let format = exportSettings.format
-        let quality = exportSettings.quality
-        let preserveMetadata = exportSettings.hdrEnabled
-        
+    private func encodedImage(from image: UIImage, index: Int) async -> EncodedImage? {
+        let (format, quality, preserveMetadata) = await MainActor.run {
+            (ExportSettings.shared.format, ExportSettings.shared.quality.compressionQuality, ExportSettings.shared.hdrEnabled)
+        }
+
         switch format {
         case .png:
             if let data = createPNGData(from: image, preserveMetadata: preserveMetadata) {
                 return EncodedImage(data: data, filename: "frame-\(index + 1).png")
             }
             return nil
-            
+
         case .jpeg:
-            let compressionQuality = quality.compressionQuality
-            if let data = createJPEGData(from: image, quality: compressionQuality, preserveMetadata: preserveMetadata) {
+            if let data = createJPEGData(from: image, quality: quality, preserveMetadata: preserveMetadata) {
                 return EncodedImage(data: data, filename: "frame-\(index + 1).jpg")
             }
             return nil
         }
     }
-    
+
     private func createJPEGData(from image: UIImage, quality: CGFloat, preserveMetadata: Bool) -> Data? {
-        guard let cgImage = image.cgImage else { return image.jpegData(compressionQuality: quality) }
-        
+        guard let cgImage = image.cgImage else {
+            return image.jpegData(compressionQuality: quality)
+        }
+
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil) else {
             return image.jpegData(compressionQuality: quality)
         }
-        
-        let options: [CFString: Any]
+
+        var options: [CFString: Any] = [
+            kCGImageDestinationLossyCompressionQuality: quality
+        ]
+
         if preserveMetadata {
-            options = [
-                kCGImageDestinationLossyCompressionQuality: quality,
-                kCGImagePropertyJFIFDictionary: [
-                    kCGImagePropertyJFIFVersion: 1,
-                    kCGImagePropertyJFIFDensityUnit: 1,
-                    kCGImagePropertyJFIFXDensity: 72,
-                    kCGImagePropertyJFIFYDensity: 72
-                ] as [CFString: Any],
-                kCGImagePropertyExifDictionary: [
-                    kCGImagePropertyExifUserComment: "Extracted with ZhenHaoXuan"
-                ] as [CFString: Any]
-            ]
-        } else {
-            options = [
-                kCGImageDestinationLossyCompressionQuality: quality
-            ]
+            options[kCGImagePropertyJFIFDictionary] = [
+                kCGImagePropertyJFIFVersion: 1,
+                kCGImagePropertyJFIFDensityUnit: 1,
+                kCGImagePropertyJFIFXDensity: 72,
+                kCGImagePropertyJFIFYDensity: 72
+            ] as [CFString: Any]
+            options[kCGImagePropertyExifDictionary] = [
+                kCGImagePropertyExifUserComment: "Extracted with ZhenHaoXuan"
+            ] as [CFString: Any]
         }
-        
+
         CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
-        
+
         if CGImageDestinationFinalize(destination) {
             return data as Data
         }
-        
+
         return image.jpegData(compressionQuality: quality)
     }
-    
+
     private func createPNGData(from image: UIImage, preserveMetadata: Bool) -> Data? {
         guard let cgImage = image.cgImage else { return image.pngData() }
-        
+
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else {
             return image.pngData()
         }
-        
-        let options: [CFString: Any]
+
+        var options: [CFString: Any] = [:]
         if preserveMetadata {
-            options = [
-                kCGImagePropertyPNGDictionary: [
-                    kCGImagePropertyPNGDescription: "Extracted with ZhenHaoXuan"
-                ] as [CFString: Any]
-            ]
-        } else {
-            options = [:]
+            options[kCGImagePropertyPNGDictionary] = [
+                kCGImagePropertyPNGDescription: "Extracted with ZhenHaoXuan"
+            ] as [CFString: Any]
         }
-        
+
         CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
-        
+
         if CGImageDestinationFinalize(destination) {
             return data as Data
         }
-        
+
         return image.pngData()
     }
 }
+
+// MARK: - Supporting Types
 
 private struct EncodedImage {
     let data: Data

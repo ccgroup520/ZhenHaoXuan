@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var errorMessage = ""
     @State private var isLoading = false
     @State private var showVIPUpgradeAlert = false
+    @State private var showGallery = false
 
     @ObservedObject private var vipManager = VIPManager.shared
 
@@ -45,6 +46,9 @@ struct HomeView: View {
                 onVideoSelected: { url in
                     selectedVideoURL = url
                 },
+                onLivePhotoExtracted: { image, assetID in
+                    handleLivePhotoCapture(image: image, assetID: assetID)
+                },
                 onVideoTooLong: {
                     showVideoTooLongAlert = true
                 },
@@ -61,11 +65,24 @@ struct HomeView: View {
                 viewModel: playerViewModel,
                 captureViewModel: captureViewModel,
                 onBack: {
-                    // 退出预览时删除本次复制的临时视频，避免残留占用存储。
                     if let url = selectedVideoURL {
                         MediaTempStore.remove(url)
                     }
                     selectedVideoURL = nil
+                }
+            )
+        }
+        .sheet(isPresented: $showGallery) {
+            FrameGalleryView(
+                frames: captureViewModel.capturedFrames,
+                onClearAll: {
+                    captureViewModel.clearAllFrames()
+                },
+                onDeleteFrame: { id in
+                    captureViewModel.removeFrame(id: id)
+                },
+                onDeleteFrames: { ids in
+                    captureViewModel.removeFrames(ids: ids)
                 }
             )
         }
@@ -92,6 +109,28 @@ struct HomeView: View {
             Text(errorMessage)
         }
     }
+
+    // MARK: - Live Photo 处理
+
+    private func handleLivePhotoCapture(image: UIImage, assetID: String) {
+        Task {
+            let source = FrameSource.livePhoto(assetID: assetID)
+            let frame = await FrameStore.shared.add(
+                image: image,
+                timestamp: 0,
+                videoName: "Live Photo",
+                source: source
+            )
+
+            if let frame = frame {
+                captureViewModel.capturedFrames.append(frame)
+                // 提取完成后直接打开画廊展示结果
+                showGallery = true
+            }
+        }
+    }
+
+    // MARK: - Subviews
 
     private var brandSection: some View {
         VStack(spacing: 16) {
@@ -141,7 +180,7 @@ struct HomeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("选择视频")
+                    Text("选择视频或 Live Photo")
                         .font(.headline)
                         .foregroundStyle(.primary)
 
@@ -249,7 +288,7 @@ struct HomeView: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text("正在加载视频")
+                    Text("正在加载")
                         .font(.headline)
                         .foregroundColor(.white)
 

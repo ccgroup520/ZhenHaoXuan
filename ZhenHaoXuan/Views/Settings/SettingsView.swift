@@ -178,7 +178,16 @@ struct SettingsView: View {
 
             Divider()
 
-            Toggle(isOn: $exportSettings.hdrEnabled) {
+            Toggle(isOn: Binding(
+                get: { exportSettings.hdrEnabled },
+                set: { newValue in
+                    if newValue && !vipManager.canUseHDR {
+                        showVIPView = true
+                    } else {
+                        exportSettings.hdrEnabled = newValue
+                    }
+                }
+            )) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         Text("保留 HDR 信息")
@@ -200,13 +209,6 @@ struct SettingsView: View {
                 }
             }
             .tint(AppPalette.brandBlue)
-            .disabled(!vipManager.canUseHDR)
-            .onChange(of: exportSettings.hdrEnabled) { newValue in
-                if newValue && !vipManager.canUseHDR {
-                    exportSettings.hdrEnabled = false
-                    showVIPView = true
-                }
-            }
 
             Divider()
 

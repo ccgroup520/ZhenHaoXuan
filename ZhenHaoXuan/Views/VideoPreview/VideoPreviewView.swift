@@ -708,6 +708,8 @@ extension VideoPreviewView {
 }
 
 extension UIImage {
+    private static let dominantColorContext = CIContext(options: [.workingColorSpace: kCFNull as Any])
+
     func dominantColor() -> Color? {
         guard let inputImage = CIImage(image: self) else { return nil }
         
@@ -727,8 +729,8 @@ extension UIImage {
         }
         
         var bitmap = [UInt8](repeating: 0, count: 4)
-        let context = CIContext(options: [.workingColorSpace: kCFNull as Any])
-        
+
+        let context = Self.dominantColorContext
         context.render(
             outputImage,
             toBitmap: &bitmap,

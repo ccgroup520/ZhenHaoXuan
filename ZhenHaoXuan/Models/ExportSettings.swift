@@ -37,6 +37,7 @@ enum ExportQuality: String, CaseIterable {
     }
 }
 
+ @MainActor
 class ExportSettings: ObservableObject {
     static let shared = ExportSettings()
     
