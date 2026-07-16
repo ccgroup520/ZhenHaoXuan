@@ -70,8 +70,9 @@ final class VIPManager: ObservableObject {
 
     // MARK: - Constants
     private let dailyFreeLimit = 3
-    private let dailyMonthlyLimit = 50
-    private let freeVideoDurationLimit: TimeInterval = 30
+    private let dailyMonthlyLimit = 30
+    private let dailyYearlyLimit = 100
+
 
     // MARK: - StoreKit Products
     @Published var monthlyProduct: Product?
@@ -200,7 +201,7 @@ final class VIPManager: ObservableObject {
             if let expiry = subscriptionExpiryDate, expiry < Date() {
                 return max(0, dailyFreeLimit - todayExportCount - reservedQuota)
             }
-            return max(0, dailyMonthlyLimit - todayExportCount - reservedQuota)
+            return max(0, dailyYearlyLimit - todayExportCount - reservedQuota)
        case .permanent:
             return Int.max
         }
@@ -209,19 +210,19 @@ final class VIPManager: ObservableObject {
     var exportLimitDescription: String {
         switch currentTier {
         case .free:
-            return "每日3次"
+            return "每日3张"
         case .monthly:
             if let expiry = subscriptionExpiryDate, expiry < Date() {
-                return "订阅已过期，每日3次"
+                return "订阅已过期，每日3张"
             }
-           return "每日50次"
+           return "每日30张"
         case .yearly:
             if let expiry = subscriptionExpiryDate, expiry < Date() {
-                return "订阅已过期，每日3次"
+                return "订阅已过期，每日3张"
             }
-            return "每日50次"
+            return "每日100张"
        case .permanent:
-            return "无限次"
+            return "无限张"
         }
     }
 
@@ -274,30 +275,6 @@ final class VIPManager: ObservableObject {
     /// 兼容旧接口：直接记录导出（用于不需要预扣的简单场景）
     func recordExport(count: Int = 1) {
         confirmExport(count: count)
-    }
-
-    // MARK: - Video Duration Limit
-
-    var maxVideoDuration: TimeInterval {
-        switch currentTier {
-        case .free:
-            return freeVideoDurationLimit
-        case .monthly, .yearly, .permanent:
-            return .greatestFiniteMagnitude
-        }
-    }
-
-    var videoDurationLimitDescription: String {
-        switch currentTier {
-        case .free:
-            return "30秒以内"
-        case .monthly, .yearly, .permanent:
-            return "无限制"
-        }
-    }
-
-    func canSelectVideo(duration: TimeInterval) -> Bool {
-        duration <= maxVideoDuration
     }
 
     // MARK: - HDR Support

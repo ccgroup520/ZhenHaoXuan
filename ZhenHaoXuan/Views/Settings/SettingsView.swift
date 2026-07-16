@@ -8,6 +8,7 @@ struct SettingsView: View {
 
     @State private var showVIPView = false
     @State private var showSignIn = false
+    @State private var showSignOutConfirm = false
 
     var body: some View {
         ZStack {
@@ -36,6 +37,14 @@ struct SettingsView: View {
         .sheet(isPresented: $showSignIn) {
             AppleSignInView()
         }
+        .alert("退出登录", isPresented: $showSignOutConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("退出", role: .destructive) {
+                userProfile.clearUserProfile()
+            }
+        } message: {
+            Text("确定要退出登录吗？退出后不会影响已购买的会员。")
+        }
         .alert("购买失败", isPresented: $vipManager.showError) {
             Button("确定", role: .cancel) {}
         } message: {
@@ -51,7 +60,9 @@ struct SettingsView: View {
 
     private var profileSection: some View {
         Button(action: {
-            if !userProfile.isSignedIn {
+            if userProfile.isSignedIn {
+                showSignOutConfirm = true
+            } else {
                 showSignIn = true
             }
         }) {
@@ -128,7 +139,7 @@ struct SettingsView: View {
                     Text("升级会员")
                         .font(.headline)
 
-                    Text("无限导出 · 无限时长 · HDR支持")
+                    Text("无限导出 · HDR支持")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

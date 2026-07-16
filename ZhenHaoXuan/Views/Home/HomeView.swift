@@ -3,14 +3,12 @@ import SwiftUI
 struct HomeView: View {
     @State private var showVideoPicker = false
     @State private var selectedVideoURL: URL?
+    @State private var isFromLivePhoto = false
     @StateObject private var playerViewModel = VideoPlayerViewModel()
     @StateObject private var captureViewModel = FrameCaptureViewModel()
-    @State private var showVideoTooLongAlert = false
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
     @State private var isLoading = false
-    @State private var showVIPUpgradeAlert = false
-    @State private var showGallery = false
 
     @ObservedObject private var vipManager = VIPManager.shared
 
@@ -44,13 +42,12 @@ struct HomeView: View {
         .sheet(isPresented: $showVideoPicker) {
             VideoPickerView(
                 onVideoSelected: { url in
+                    isFromLivePhoto = false
                     selectedVideoURL = url
                 },
-                onLivePhotoExtracted: { image, assetID in
-                    handleLivePhotoCapture(image: image, assetID: assetID)
-                },
-                onVideoTooLong: {
-                    showVideoTooLongAlert = true
+                onLivePhotoSelected: { url in
+                    isFromLivePhoto = true
+                    selectedVideoURL = url
                 },
                 onError: { error in
                     errorMessage = error
@@ -62,6 +59,7 @@ struct HomeView: View {
         .fullScreenCover(item: $selectedVideoURL) { url in
             VideoPreviewView(
                 videoURL: url,
+                isFromLivePhoto: isFromLivePhoto,
                 viewModel: playerViewModel,
                 captureViewModel: captureViewModel,
                 onBack: {
@@ -72,61 +70,10 @@ struct HomeView: View {
                 }
             )
         }
-        .sheet(isPresented: $showGallery) {
-            FrameGalleryView(
-                frames: captureViewModel.capturedFrames,
-                onClearAll: {
-                    captureViewModel.clearAllFrames()
-                },
-                onDeleteFrame: { id in
-                    captureViewModel.removeFrame(id: id)
-                },
-                onDeleteFrames: { ids in
-                    captureViewModel.removeFrames(ids: ids)
-                }
-            )
-        }
-        .alert("视频时长超出限制", isPresented: $showVideoTooLongAlert) {
-            Button("我知道了", role: .cancel) {}
-            if !vipManager.isPaidUser {
-                Button("升级会员") {
-                    showVIPUpgradeAlert = true
-                }
-            }
-        } message: {
-            if vipManager.isPaidUser {
-                Text("此视频时长过长，请选择30秒以内的视频")
-            } else {
-                Text("免费版仅支持30秒以内的视频\n升级会员可解锁无限时长")
-            }
-        }
-        .sheet(isPresented: $showVIPUpgradeAlert) {
-            VIPMembershipView()
-        }
         .alert("错误", isPresented: $showErrorAlert) {
             Button("确定", role: .cancel) {}
         } message: {
             Text(errorMessage)
-        }
-    }
-
-    // MARK: - Live Photo 处理
-
-    private func handleLivePhotoCapture(image: UIImage, assetID: String) {
-        Task {
-            let source = FrameSource.livePhoto(assetID: assetID)
-            let frame = await FrameStore.shared.add(
-                image: image,
-                timestamp: 0,
-                videoName: "Live Photo",
-                source: source
-            )
-
-            if let frame = frame {
-                captureViewModel.capturedFrames.append(frame)
-                // 提取完成后直接打开画廊展示结果
-                showGallery = true
-            }
         }
     }
 
@@ -218,15 +165,6 @@ struct HomeView: View {
                 value: vipManager.isPaidUser ? "∞" : "\(vipManager.remainingExports)",
                 label: vipManager.isPaidUser ? "无限导出" : "剩余",
                 color: vipManager.isPaidUser ? AppPalette.brandOrangeDeep : AppPalette.brandBlue
-            )
-
-            Divider()
-                .frame(height: 40)
-
-            statItem(
-                value: vipManager.isPaidUser ? "∞" : vipManager.videoDurationLimitDescription,
-                label: "视频时长",
-                color: AppPalette.brandBlue
             )
         }
         .frame(maxWidth: .infinity)

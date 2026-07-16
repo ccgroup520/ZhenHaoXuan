@@ -11,12 +11,14 @@ struct FrameGalleryView: View {
     @ObservedObject private var vipManager = VIPManager.shared
     @State private var selectedFrames: Set<UUID> = []
     @State private var showExportSuccess = false
-   @State private var showExportLimitAlert = false
-   @State private var showVIPUpgradeAlert = false
-   @State private var pendingExportCount = 0
-   @State private var appeared = false
-   /// 记录当前正在进行的导出操作需要多少张额度
-   @State private var activeExportCount: Int = 0
+    @State private var showExportLimitAlert = false
+    @State private var showVIPUpgradeAlert = false
+    @State private var showDeleteConfirm = false
+    @State private var showClearAllConfirm = false
+    @State private var pendingExportCount = 0
+    @State private var appeared = false
+    /// 记录当前正在进行的导出操作需要多少张额度
+    @State private var activeExportCount: Int = 0
 
     private var gridItemLayout: [GridItem] {
         [GridItem(.adaptive(minimum: 160), spacing: 16)]
@@ -88,6 +90,18 @@ struct FrameGalleryView: View {
            .sheet(isPresented: $showVIPUpgradeAlert) {
                VIPMembershipView()
            }
+           .alert("确认删除", isPresented: $showDeleteConfirm) {
+               Button("取消", role: .cancel) {}
+               Button("删除", role: .destructive) { deleteSelectedFrames() }
+           } message: {
+               Text("确定要删除选中的 \(selectedFrames.count) 张图片吗？")
+           }
+           .alert("确认清空", isPresented: $showClearAllConfirm) {
+               Button("取消", role: .cancel) {}
+               Button("清空全部", role: .destructive) { clearAll() }
+           } message: {
+               Text("确定要清空所有捕获的图片吗？此操作不可撤销。")
+           }
         }
     }
 
@@ -104,14 +118,14 @@ struct FrameGalleryView: View {
 
             if !selectedFrames.isEmpty {
                 Divider()
-                Button(role: .destructive, action: deleteSelectedFrames) {
+                Button(role: .destructive, action: { showDeleteConfirm = true }) {
                     Label("删除选中", systemImage: "trash")
                 }
             }
 
             Divider()
 
-            Button(role: .destructive, action: clearAll) {
+            Button(role: .destructive, action: { showClearAllConfirm = true }) {
                 Label("清空全部", systemImage: "trash")
             }
         } label: {
@@ -215,7 +229,7 @@ struct FrameGalleryView: View {
             Image(systemName: vipManager.isPaidUser ? "crown.fill" : "square.and.arrow.down")
                 .font(.caption)
 
-            Text(vipManager.isPaidUser ? "无限导出" : "剩余 \(vipManager.remainingExports) 次")
+            Text(vipManager.isPaidUser ? "无限导出" : "剩余 \(vipManager.remainingExports) 张")
                 .font(.caption)
                 .fontWeight(.semibold)
         }
@@ -247,7 +261,7 @@ struct FrameGalleryView: View {
 
             Spacer()
 
-            Button(role: .destructive, action: deleteSelectedFrames) {
+            Button(role: .destructive, action: { showDeleteConfirm = true }) {
                 Image(systemName: "trash")
                     .font(.subheadline)
                     .fontWeight(.medium)
@@ -472,6 +486,11 @@ struct FrameItemView: View {
                         lineWidth: isSelected ? 3 : 1
                     )
             )
+            .overlay(alignment: .bottomTrailing) {
+                if case .livePhoto = frame.source {
+                    livePhotoBadge
+                }
+            }
         }
     }
 
@@ -495,14 +514,7 @@ struct FrameItemView: View {
                     .fontWeight(.semibold)
                     .foregroundStyle(.white)
                     .lineLimit(1)
-
-                // Live Photo 标记
-                if case .livePhoto = frame.source {
-                    Image(systemName: "livephoto")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.8))
                 }
-            }
 
             HStack(spacing: 8) {
                 infoTag(text: formatTimestamp(frame.timestamp), systemImage: "clock")
@@ -547,9 +559,10 @@ struct FrameItemView: View {
 
     private func formatTimestamp(_ timestamp: TimeInterval) -> String {
         let totalSeconds = Int(timestamp.rounded())
+        let centiseconds = Int((timestamp - Double(totalSeconds)) * 100)
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
-        return String(format: "%02d:%02d", minutes, seconds)
+        return String(format: "%02d:%02d.%02d", minutes, seconds, centiseconds)
     }
 
     private func formatCaptureDate(_ date: Date) -> String {
@@ -557,6 +570,20 @@ struct FrameItemView: View {
         formatter.locale = Locale(identifier: "zh_CN")
         formatter.dateFormat = "M月d日"
         return formatter.string(from: date)
+    }
+
+    private var livePhotoBadge: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "livephoto")
+                .font(.system(size: 10))
+            Text("Live")
+                .font(.system(size: 10, weight: .semibold))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.ultraThinMaterial, in: Capsule())
+        .padding(10)
     }
 }
 

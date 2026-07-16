@@ -19,7 +19,7 @@ struct VIPMembershipView: View {
             switch self {
             case .monthly: return "¥6.00"
             case .yearly: return "¥28.00"
-            case .permanent: return "¥48.00"
+            case .permanent: return "¥68.00"
             }
         }
 
@@ -113,9 +113,9 @@ struct VIPMembershipView: View {
             }
 
             VStack(alignment: .leading, spacing: 14) {
-                benefitRow("无限导出", subtitle: "月度/年度会员无限次使用")
-                benefitRow("闪电模式", subtitle: "快速批量处理图片")
-                benefitRow("所有视频时长", subtitle: "不受30秒限制")
+                benefitRow("更多导出次数", subtitle: "月度30张/日 · 年度100张/日 · 永久不限张数")
+                benefitRow("HDR 支持", subtitle: "保留高动态范围色彩信息")
+                benefitRow("所有视频时长", subtitle: "不限时长自由选择")
                 benefitRow("持续功能更新", subtitle: "解锁更多精彩内容")
                 benefitRow("自动同步", subtitle: "与 App Store 账号同步")
             }
@@ -240,7 +240,7 @@ struct VIPMembershipView: View {
         case .yearly:
             return "每年 ¥28 解锁"
         case .permanent:
-            return "¥48 终身解锁"
+            return "¥68 终身解锁"
         }
     }
 
