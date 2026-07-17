@@ -2,24 +2,21 @@ import Foundation
 import Photos
 import UIKit
 import ImageIO
-import MobileCoreServices
 
 /// 图片导出服务。
 ///
 /// 通俗解释：这是"打印店"，把 App 里捕获的图片"打印"到系统相册。
 /// 支持单张/批量打印，PNG/JPEG 格式，可调质量。
-///
-/// 优化：统一用 async/await，扔掉了 GCD 和嵌套回调。
 actor ImageExportService {
     static let shared = ImageExportService()
 
 
     private init() {}
 
-    func exportToPhotoLibrary(image: UIImage) async throws {
+    func exportToPhotoLibrary(image: UIImage, filename: String) async throws {
         try await requestAddOnlyAuthorization()
 
-        guard let encoded = await encodedImage(from: image, index: 0) else {
+        guard let encoded = await encodedImage(from: image, filename: filename) else {
             throw ImageExportError.encodingFailed
         }
 
@@ -31,15 +28,15 @@ actor ImageExportService {
         }
     }
 
-    func exportMultipleToPhotoLibrary(images: [UIImage]) async throws -> Int {
+    func exportMultipleToPhotoLibrary(images: [(image: UIImage, filename: String)]) async throws -> Int {
         guard !images.isEmpty else { return 0 }
 
         try await requestAddOnlyAuthorization()
 
         let encodedImages: [EncodedImage] = await withTaskGroup(of: (Int, EncodedImage?).self) { group in
-            for (index, image) in images.enumerated() {
+            for (index, item) in images.enumerated() {
                 group.addTask {
-                    let encoded = await self.encodedImage(from: image, index: index)
+                    let encoded = await self.encodedImage(from: item.image, filename: item.filename)
                     return (index, encoded)
                 }
             }
@@ -81,27 +78,27 @@ actor ImageExportService {
         }
     }
 
-    private func encodedImage(from image: UIImage, index: Int) async -> EncodedImage? {
-        let (format, quality, preserveMetadata) = await MainActor.run {
-            (ExportSettings.shared.format, ExportSettings.shared.quality.compressionQuality, ExportSettings.shared.hdrEnabled)
+    private func encodedImage(from image: UIImage, filename: String) async -> EncodedImage? {
+        let (format, quality) = await MainActor.run {
+            (ExportSettings.shared.format, ExportSettings.shared.quality.compressionQuality)
         }
 
         switch format {
         case .png:
-            if let data = createPNGData(from: image, preserveMetadata: preserveMetadata) {
-                return EncodedImage(data: data, filename: "frame-\(index + 1).png")
+            if let data = createPNGData(from: image) {
+                return EncodedImage(data: data, filename: filename)
             }
             return nil
 
         case .jpeg:
-            if let data = createJPEGData(from: image, quality: quality, preserveMetadata: preserveMetadata) {
-                return EncodedImage(data: data, filename: "frame-\(index + 1).jpg")
+            if let data = createJPEGData(from: image, quality: quality) {
+                return EncodedImage(data: data, filename: filename)
             }
             return nil
         }
     }
 
-    private func createJPEGData(from image: UIImage, quality: CGFloat, preserveMetadata: Bool) -> Data? {
+    private func createJPEGData(from image: UIImage, quality: CGFloat) -> Data? {
         guard let cgImage = image.cgImage else {
             return image.jpegData(compressionQuality: quality)
         }
@@ -111,21 +108,9 @@ actor ImageExportService {
             return image.jpegData(compressionQuality: quality)
         }
 
-        var options: [CFString: Any] = [
+        let options: [CFString: Any] = [
             kCGImageDestinationLossyCompressionQuality: quality
         ]
-
-        if preserveMetadata {
-            options[kCGImagePropertyJFIFDictionary] = [
-                kCGImagePropertyJFIFVersion: 1,
-                kCGImagePropertyJFIFDensityUnit: 1,
-                kCGImagePropertyJFIFXDensity: 72,
-                kCGImagePropertyJFIFYDensity: 72
-            ] as [CFString: Any]
-            options[kCGImagePropertyExifDictionary] = [
-                kCGImagePropertyExifUserComment: "Extracted with ZhenHaoXuan"
-            ] as [CFString: Any]
-        }
 
         CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
 
@@ -136,7 +121,7 @@ actor ImageExportService {
         return image.jpegData(compressionQuality: quality)
     }
 
-    private func createPNGData(from image: UIImage, preserveMetadata: Bool) -> Data? {
+    private func createPNGData(from image: UIImage) -> Data? {
         guard let cgImage = image.cgImage else { return image.pngData() }
 
         let data = NSMutableData()
@@ -144,14 +129,7 @@ actor ImageExportService {
             return image.pngData()
         }
 
-        var options: [CFString: Any] = [:]
-        if preserveMetadata {
-            options[kCGImagePropertyPNGDictionary] = [
-                kCGImagePropertyPNGDescription: "Extracted with ZhenHaoXuan"
-            ] as [CFString: Any]
-        }
-
-        CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
+        CGImageDestinationAddImage(destination, cgImage, nil)
 
         if CGImageDestinationFinalize(destination) {
             return data as Data

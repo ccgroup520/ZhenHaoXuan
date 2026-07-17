@@ -43,7 +43,7 @@ class ExportSettings: ObservableObject {
     
     private let formatKey = "exportFormat"
     private let qualityKey = "exportQuality"
-    private let hdrEnabledKey = "exportHdrEnabled"
+    private let hdrKey = "exportHDR"
     
     @Published var format: ExportFormat {
         didSet {
@@ -57,9 +57,10 @@ class ExportSettings: ObservableObject {
         }
     }
     
+    /// HDR 导出开关（仅付费会员可用）
     @Published var hdrEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(hdrEnabled, forKey: hdrEnabledKey)
+            UserDefaults.standard.set(hdrEnabled, forKey: hdrKey)
         }
     }
     
@@ -68,18 +69,18 @@ class ExportSettings: ObservableObject {
            let format = ExportFormat(rawValue: savedFormat) {
             self.format = format
         } else {
-            self.format = .png
+            self.format = .jpeg
         }
         
         if let savedQuality = UserDefaults.standard.string(forKey: qualityKey),
            let quality = ExportQuality(rawValue: savedQuality) {
             self.quality = quality
         } else {
-            self.quality = .lossless
+            self.quality = .high
         }
         
-        if let savedHDREnabled = UserDefaults.standard.object(forKey: hdrEnabledKey) as? Bool {
-            self.hdrEnabled = savedHDREnabled
+        if let savedHDR = UserDefaults.standard.object(forKey: hdrKey) as? Bool {
+            self.hdrEnabled = savedHDR
         } else {
             self.hdrEnabled = false
         }

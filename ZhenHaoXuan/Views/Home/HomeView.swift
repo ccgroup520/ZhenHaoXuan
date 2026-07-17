@@ -1,4 +1,5 @@
 import SwiftUI
+import Photos
 
 struct HomeView: View {
     @State private var showVideoPicker = false
@@ -9,6 +10,9 @@ struct HomeView: View {
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
     @State private var isLoading = false
+    @State private var showPermissionGuide = false
+    @State private var showRetryAlert = false
+    @State private var retryVideoURL: URL?
 
     @ObservedObject private var vipManager = VIPManager.shared
 
@@ -70,6 +74,22 @@ struct HomeView: View {
                 }
             )
         }
+        .sheet(isPresented: $showPermissionGuide) {
+            PermissionGuideView()
+        }
+        .alert("加载失败", isPresented: $showRetryAlert) {
+            Button("取消", role: .cancel) {
+                retryVideoURL = nil
+            }
+            Button("重试") {
+                if let url = retryVideoURL {
+                    retryVideoURL = nil
+                    retryLoadVideo(url: url)
+                }
+            }
+        } message: {
+            Text("视频加载失败，请检查网络后重试")
+        }
         .alert("错误", isPresented: $showErrorAlert) {
             Button("确定", role: .cancel) {}
         } message: {
@@ -106,7 +126,7 @@ struct HomeView: View {
 
     private var actionCard: some View {
         Button(action: {
-            showVideoPicker = true
+            checkPhotoLibraryPermission()
         }) {
             HStack(spacing: 16) {
                 ZStack {
@@ -195,6 +215,56 @@ struct HomeView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // MARK: - 权限检查与重试
+
+    private func checkPhotoLibraryPermission() {
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        switch status {
+        case .authorized, .limited:
+            showVideoPicker = true
+        case .denied, .restricted:
+            showPermissionGuide = true
+        case .notDetermined:
+            PHPhotoLibrary.requestAuthorization(for: .readWrite) { newStatus in
+                DispatchQueue.main.async {
+                    switch newStatus {
+                    case .authorized, .limited:
+                        showVideoPicker = true
+                    case .denied, .restricted:
+                        showPermissionGuide = true
+                    default:
+                        break
+                    }
+                }
+            }
+        @unknown default:
+            showVideoPicker = true
+        }
+    }
+
+    private func retryLoadVideo(url: URL) {
+        isLoading = true
+        // 重新尝试加载视频
+        let asset = AVURLAsset(url: url)
+        Task {
+            do {
+                let duration = try await asset.load(.duration)
+                if duration.isValid {
+                    isLoading = false
+                    selectedVideoURL = url
+                } else {
+                    isLoading = false
+                    showRetryAlert = true
+                    retryVideoURL = url
+                }
+            } catch {
+                isLoading = false
+                showRetryAlert = true
+                retryVideoURL = url
+            }
+        }
+    }
+
     private var loadingOverlay: some View {
         ZStack {
             Color.black.opacity(0.6)
@@ -246,6 +316,86 @@ struct HomeView: View {
             )
         }
         .transition(.opacity)
+    }
+}
+
+// MARK: - 相册权限引导页
+
+struct PermissionGuideView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                AppBackground()
+
+                VStack(spacing: 28) {
+                    Spacer()
+
+                    ZStack {
+                        Circle()
+                            .fill(AppPalette.brandBlue.opacity(0.12))
+                            .frame(width: 120, height: 120)
+
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.system(size: 48))
+                            .foregroundStyle(AppPalette.brandBlue)
+                    }
+
+                    VStack(spacing: 12) {
+                        Text("需要相册权限")
+                            .font(.title2)
+                            .fontWeight(.bold)
+
+                        Text("需要相册权限才能选择视频\n请前往系统设置开启权限")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+                    }
+
+                    Button(action: {
+                        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                        if UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.right.circle.fill")
+                            Text("去设置")
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(
+                            LinearGradient(
+                                colors: [AppPalette.brandBlue, AppPalette.brandBlueDeep],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ),
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        )
+                    }
+                    .padding(.horizontal, 40)
+
+                    Button(action: { dismiss() }) {
+                        Text("稍后再说")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+                }
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("关闭") { dismiss() }
+                }
+            }
+        }
     }
 }
 

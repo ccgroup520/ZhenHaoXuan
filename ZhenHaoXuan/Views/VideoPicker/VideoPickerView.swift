@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import AVFoundation
 import UniformTypeIdentifiers
+import Photos
 
 struct VideoPickerView: UIViewControllerRepresentable {
     let onVideoSelected: (URL) -> Void
@@ -79,7 +80,7 @@ struct VideoPickerView: UIViewControllerRepresentable {
         private func handleLivePhotoSelection(_ result: PHPickerResult) {
             // 优先使用 PHAsset 路径（更可靠：能获取完整视频，支持 iCloud）
             if let assetIdentifier = result.assetIdentifier {
-                let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil)
+                let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: PHFetchOptions())
                 if let asset = fetchResult.firstObject {
                     loadLivePhotoVideo(asset: asset)
                     return
@@ -89,41 +90,58 @@ struct VideoPickerView: UIViewControllerRepresentable {
             loadLivePhotoMovie(result)
         }
 
-        /// 通过 PHAsset 路径加载 Live Photo 的视频部分（推荐方式，更可靠）
+        /// 通过 PHAssetResource 提取 Live Photo 的视频部分（正确方式）
         private func loadLivePhotoVideo(asset: PHAsset) {
-            let options = PHVideoRequestOptions()
-            options.version = .original
-            options.deliveryMode = .highQualityFormat
+            let resources = PHAssetResource.assetResources(for: asset)
+            // 查找 paired_video 资源（Live Photo 的视频部分）
+            guard let videoResource = resources.first(where: { $0.type == .pairedVideo }) else {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.onError("无法找到 Live Photo 的视频部分")
+                }
+                return
+            }
+
+            let destinationURL = MediaTempStore.directory.appendingPathComponent("\(asset.localIdentifier.replacingOccurrences(of: "/", with: "_"))_live.mov")
+
+            // 确保目标目录存在
+            do {
+                try FileManager.default.createDirectory(at: MediaTempStore.directory, withIntermediateDirectories: true)
+            } catch {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.onError("创建临时目录失败: \(error.localizedDescription)")
+                }
+                return
+            }
+
+            // 如果目标已存在，先删除
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try? FileManager.default.removeItem(at: destinationURL)
+            }
+
+            let options = PHAssetResourceRequestOptions()
             options.isNetworkAccessAllowed = true
 
-            PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, audioMix, info in
-                guard let urlAsset = avAsset as? AVURLAsset else {
+            PHAssetResourceManager.default().writeData(for: videoResource, toFile: destinationURL, options: options) { error in
+                if let error = error {
                     DispatchQueue.main.async {
                         self.isLoading = false
-                        self.onError("无法获取 Live Photo 视频文件")
+                        self.onError("提取 Live Photo 视频失败: \(error.localizedDescription)")
                     }
                     return
                 }
 
-                let destinationURL = MediaTempStore.makeDestinationURL(for: urlAsset.url)
-                do {
-                    try FileManager.default.copyItem(at: urlAsset.url, to: destinationURL)
-                    DispatchQueue.main.async {
-                        self.isLoading = false
-                        self.onLivePhotoSelected(destinationURL)
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        self.isLoading = false
-                        self.onError("复制 Live Photo 视频失败: \(error.localizedDescription)")
-                    }
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.onLivePhotoSelected(destinationURL)
                 }
             }
         }
 
         /// 通过 loadFileRepresentation 加载 Live Photo 的视频部分（降级方案）
         private func loadLivePhotoMovie(_ result: PHPickerResult) {
-            result.itemProvider.loadInPlaceFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { url, isInPlace, error in
+            result.itemProvider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { url, error in
                 if let error = error {
                     // 如果 PHAsset 路径也走过了且失败了，静默处理；否则报错
                     DispatchQueue.main.async {
@@ -136,7 +154,7 @@ struct VideoPickerView: UIViewControllerRepresentable {
                 guard let sourceURL = url else {
                     DispatchQueue.main.async {
                         self.isLoading = false
-                        self.onError("无法获取 Live Photo 视频内容")
+                        self.onError("无法获取 Live Photo 视频文件")
                     }
                     return
                 }
@@ -170,7 +188,7 @@ struct VideoPickerView: UIViewControllerRepresentable {
 
         private func handleVideoSelection(_ result: PHPickerResult) {
             if let assetIdentifier = result.assetIdentifier {
-                let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil)
+                let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: PHFetchOptions())
                 guard let asset = fetchResult.firstObject else {
                     DispatchQueue.main.async {
                         self.isLoading = false

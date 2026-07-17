@@ -54,7 +54,7 @@ final class VideoPlayerViewModel: ObservableObject {
 
                 duration = durationValue.seconds
                 frameRate = detectedFrameRate
-                isHDR = hdrDetected && ExportSettings.shared.hdrEnabled
+                isHDR = hdrDetected
 
                 let playerItem = AVPlayerItem(asset: asset)
                 if ExportSettings.shared.hdrEnabled {

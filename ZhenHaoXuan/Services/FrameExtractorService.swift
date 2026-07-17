@@ -21,8 +21,29 @@ actor FrameExtractorService {
 
     /// 从视频指定时间点提取一帧图片
     func extractFrame(from videoURL: URL, at time: TimeInterval) async throws -> UIImage {
-        let generator = cachedGenerator(for: videoURL)
+        let asset = AVURLAsset(url: videoURL)
         let cmTime = CMTime(seconds: time, preferredTimescale: 600)
+
+        // HDR 增强（仅付费会员）：以 2x 超采样提取，保留更多画面细节
+        let useHDR = await MainActor.run {
+            ExportSettings.shared.hdrEnabled && VIPManager.shared.canUseHDR
+        }
+
+        let generator: AVAssetImageGenerator
+        if useHDR {
+            generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            generator.requestedTimeToleranceAfter = .zero
+            generator.requestedTimeToleranceBefore = .zero
+            if let track = try? await asset.loadTracks(withMediaType: .video).first {
+                let naturalSize = try? await track.load(.naturalSize)
+                if let size = naturalSize {
+                    generator.maximumSize = CGSize(width: size.width * 2, height: size.height * 2)
+                }
+            }
+        } else {
+            generator = cachedGenerator(for: videoURL)
+        }
 
         let cgImage: CGImage
         do {
@@ -31,17 +52,7 @@ actor FrameExtractorService {
             throw FrameExtractorError.extractionFailed(underlying: error)
         }
 
-    let image = UIImage(cgImage: cgImage)
-
-    // HDR 增强（仅会员且开启 HDR 时）
-    let hdrEnabled = await MainActor.run { ExportSettings.shared.hdrEnabled }
-    if hdrEnabled {
-        if let hdrImage = await extractHDRFrame(from: videoURL, at: cmTime) {
-                return hdrImage
-            }
-        }
-
-        return image
+        return UIImage(cgImage: cgImage)
     }
 
     /// 带动画帧元数据的提取（保留 EXIF 等信息）
@@ -96,38 +107,6 @@ actor FrameExtractorService {
 
         generatorCache[videoURL] = generator
         return generator
-    }
-
-    private func extractHDRFrame(from videoURL: URL, at time: CMTime) async -> UIImage? {
-        let asset = AVURLAsset(url: videoURL)
-
-        guard let videoTrack = try? await asset.loadTracks(withMediaType: .video).first else {
-            return nil
-        }
-
-        let naturalSize = try? await videoTrack.load(.naturalSize)
-        let preferredTransform = try? await videoTrack.load(.preferredTransform)
-
-        guard let size = naturalSize else { return nil }
-
-        let transform = preferredTransform ?? .identity
-        var outputSize = size
-        if transform.a == 0 && (transform.b == 1 || transform.b == -1) && (transform.c == 1 || transform.c == -1) {
-            outputSize = CGSize(width: size.height, height: size.width)
-        }
-
-        let generator = AVAssetImageGenerator(asset: asset)
-        generator.appliesPreferredTrackTransform = true
-        generator.requestedTimeToleranceAfter = .zero
-        generator.requestedTimeToleranceBefore = .zero
-        generator.maximumSize = CGSize(width: outputSize.width * 2, height: outputSize.height * 2)
-
-        do {
-            let cgImage = try generator.copyCGImage(at: time, actualTime: nil)
-            return UIImage(cgImage: cgImage)
-        } catch {
-            return nil
-        }
     }
 }
 

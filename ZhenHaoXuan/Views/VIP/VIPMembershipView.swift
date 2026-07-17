@@ -4,11 +4,17 @@ import StoreKit
 struct VIPMembershipView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vipManager = VIPManager.shared
+    private let appFirstOpenedKey = "AppFirstOpenedDate"
 
     @State private var showSuccessAlert = false
     @State private var showRestoreSuccessAlert = false
     @State private var activeDocument: PolicyDocument?
     @State private var selectedPlan: PlanType = .permanent
+    @State private var countdownDays: Int = 7
+
+    private var showPromo: Bool {
+        countdownDays > 0
+    }
 
     enum PlanType: String, CaseIterable {
         case monthly = "月度会员"
@@ -19,7 +25,7 @@ struct VIPMembershipView: View {
             switch self {
             case .monthly: return "¥6.00"
             case .yearly: return "¥28.00"
-            case .permanent: return "¥68.00"
+            case .permanent: return "¥58.00"
             }
         }
 
@@ -27,14 +33,14 @@ struct VIPMembershipView: View {
             switch self {
             case .monthly: return nil
             case .yearly: return "-65%"
-            case .permanent: return "-50%"
+            case .permanent: return nil
             }
         }
 
         var discountColor: Color {
             switch self {
             case .yearly: return .blue
-            case .permanent: return Color(red: 1.0, green: 0.85, blue: 0.2)
+            case .permanent: return .clear
             default: return .clear
             }
         }
@@ -47,6 +53,9 @@ struct VIPMembershipView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
                     headerSection
+                    if showPromo {
+                        promoBanner
+                    }
                     benefitsCard
                     planSelectionSection
                     mainButton
@@ -56,6 +65,9 @@ struct VIPMembershipView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
+        }
+        .onAppear {
+            calculateCountdownDays()
         }
         .alert("购买成功", isPresented: $showSuccessAlert) {
             Button("确定") { dismiss() }
@@ -99,6 +111,52 @@ struct VIPMembershipView: View {
         .padding(.top, 8)
     }
 
+    // MARK: - 限时优惠横幅
+    private var promoBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "gift.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.2))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("限时优惠：永久会员立减10元，仅需¥58")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+
+                Text("剩余 \(countdownDays) 天")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+
+            Spacer()
+
+            Text("\(countdownDays)天")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundStyle(Color(red: 1.0, green: 0.85, blue: 0.2))
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.orange.opacity(0.15))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                )
+        )
+    }
+
+    private func calculateCountdownDays() {
+        let firstOpenDate: Date
+        if let saved = UserDefaults.standard.object(forKey: appFirstOpenedKey) as? Date {
+            firstOpenDate = saved
+        } else {
+            firstOpenDate = Date()
+            UserDefaults.standard.set(firstOpenDate, forKey: appFirstOpenedKey)
+        }
+        let daysSinceFirstOpen = Calendar.current.dateComponents([.day], from: firstOpenDate, to: Date()).day ?? 0
+        countdownDays = max(0, 7 - daysSinceFirstOpen)
+    }
+
     // MARK: - 会员特权卡片
     private var benefitsCard: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -114,7 +172,7 @@ struct VIPMembershipView: View {
 
             VStack(alignment: .leading, spacing: 14) {
                 benefitRow("更多导出次数", subtitle: "月度30张/日 · 年度100张/日 · 永久不限张数")
-                benefitRow("HDR 支持", subtitle: "保留高动态范围色彩信息")
+                benefitRow("全分辨率画质", subtitle: "以最高分辨率提取帧画面，画质更清晰")
                 benefitRow("所有视频时长", subtitle: "不限时长自由选择")
                 benefitRow("持续功能更新", subtitle: "解锁更多精彩内容")
                 benefitRow("自动同步", subtitle: "与 App Store 账号同步")
@@ -298,8 +356,18 @@ struct PlanCard: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                VStack(spacing: 8) {
-                    Color.clear.frame(height: 10)
+                VStack(spacing: 6) {
+                    if plan == .yearly {
+                        Text("推荐")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 3)
+                            .background(Color.orange)
+                            .clipShape(Capsule())
+                    } else {
+                        Color.clear.frame(height: 18)
+                    }
 
                     Text(plan.rawValue)
                         .font(.system(size: 13, weight: .medium))
@@ -308,6 +376,12 @@ struct PlanCard: View {
                     Text(plan.price)
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(isSelected ? .white : .white.opacity(0.9))
+
+                    if plan == .yearly {
+                        Text("最划算")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.orange.opacity(0.8))
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)

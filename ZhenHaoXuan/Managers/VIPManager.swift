@@ -277,7 +277,7 @@ final class VIPManager: ObservableObject {
         confirmExport(count: count)
     }
 
-    // MARK: - HDR Support
+    // MARK: - HDR 导出支持
 
     var canUseHDR: Bool {
         currentTier != .free
@@ -453,13 +453,20 @@ final class VIPManager: ObservableObject {
         case .verified(let transaction):
             switch transaction.productID {
             case monthlyProductID:
-                let expiryDate = Calendar.current.date(byAdding: .month, value: 1, to: Date())
+                // 使用 Apple 服务器返回的 expirationDate，而非本地计算
+                guard let expiryDate = transaction.expirationDate else {
+                    showError(message: "购买验证失败：无法获取订阅到期日")
+                    return
+                }
                 saveVIPStatus(tier: .monthly, expiryDate: expiryDate)
                 await transaction.finish()
                purchaseSuccess = true
 
             case yearlyProductID:
-                let expiryDate = Calendar.current.date(byAdding: .year, value: 1, to: Date())
+                guard let expiryDate = transaction.expirationDate else {
+                    showError(message: "购买验证失败：无法获取订阅到期日")
+                    return
+                }
                 saveVIPStatus(tier: .yearly, expiryDate: expiryDate)
                 await transaction.finish()
                 purchaseSuccess = true

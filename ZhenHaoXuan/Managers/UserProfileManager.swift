@@ -4,8 +4,8 @@
 //
 //  用户资料管理器 - 处理Apple账户头像和用户信息
 //
-//  安全策略：用户名、头像等个人信息存 Keychain（加密保险柜），
-//  不再明文存 UserDefaults。
+//  安全策略：用户名存 Keychain（加密保险柜），头像图片存 App 沙箱 Documents 目录，
+//  Keychain 不适合存储大块数据（建议 <4KB），头像 JPEG 通常 20-100KB 会导致写入失败。
 //
 
 import Foundation
@@ -22,12 +22,25 @@ final class UserProfileManager: ObservableObject {
     @Published var userImage: UIImage?
     @Published var isSignedIn: Bool = false
 
-    // MARK: - Keychain Keys（个人信息放加密保险柜）
+    // MARK: - Keychain Keys（用户名等小数据放加密保险柜）
     private enum KeychainKey {
         static let userName = "userProfileName"
-        static let userImageData = "userProfileImageData"
         static let isSignedIn = "userProfileIsSignedIn"
     }
+
+    // MARK: - File Storage Keys
+    private static let userAvatarFileName = "userAvatar.jpg"
+
+    private var avatarFileURL: URL {
+        Self.avatarDirectory.appendingPathComponent(Self.userAvatarFileName)
+    }
+
+    private static let avatarDirectory: URL = {
+        let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("UserAvatars", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }()
 
     // MARK: - Initialization
     private init() {
@@ -39,13 +52,13 @@ final class UserProfileManager: ObservableObject {
     private func loadUserProfile() {
         userName = (try? KeychainManager.readString(key: KeychainKey.userName)) ?? "用户"
         isSignedIn = KeychainManager.readBool(key: KeychainKey.isSignedIn)
+        userImage = loadAvatarFromDisk()
+    }
 
-        if let imageData = KeychainManager.readData(key: KeychainKey.userImageData),
-           let image = UIImage(data: imageData) {
-            userImage = image
-        } else {
-            userImage = nil
-        }
+    private func loadAvatarFromDisk() -> UIImage? {
+        let path = avatarFileURL.path
+        guard FileManager.default.fileExists(atPath: path) else { return nil }
+        return UIImage(contentsOfFile: path)
     }
 
     func saveUserProfile(name: String, image: UIImage?) {
@@ -53,11 +66,11 @@ final class UserProfileManager: ObservableObject {
         try? KeychainManager.writeString(key: KeychainKey.userName, value: name)
 
         if let image = image, let imageData = image.jpegData(compressionQuality: 0.8) {
+            try? imageData.write(to: avatarFileURL, options: .atomic)
             userImage = image
-            try? KeychainManager.write(key: KeychainKey.userImageData, data: imageData)
         } else {
+            try? FileManager.default.removeItem(at: avatarFileURL)
             userImage = nil
-            try? KeychainManager.delete(key: KeychainKey.userImageData)
         }
 
         isSignedIn = true
@@ -70,6 +83,7 @@ final class UserProfileManager: ObservableObject {
         isSignedIn = false
 
         KeychainManager.clearAll()
+        try? FileManager.default.removeItem(at: avatarFileURL)
     }
 
     // MARK: - Apple Sign In

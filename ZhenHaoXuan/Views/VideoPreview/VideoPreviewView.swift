@@ -4,6 +4,7 @@ import Combine
 
 struct VideoPreviewView: View {
     let videoURL: URL
+    let isFromLivePhoto: Bool
     @ObservedObject var viewModel: VideoPlayerViewModel
     @ObservedObject var captureViewModel: FrameCaptureViewModel
     let onBack: () -> Void
@@ -13,6 +14,11 @@ struct VideoPreviewView: View {
     @State private var dominantColor: Color = .black
     @State private var backButtonScale: CGFloat = 1.0
     @State private var galleryButtonScale: CGFloat = 1.0
+    @State private var showLongVideoTip = false
+    @State private var showPlayGuide = false
+    @State private var showCaptureGuide = false
+    @State private var hasShownPlayGuide = false
+    @State private var hasShownCaptureGuide = false
 
     var body: some View {
         ZStack {
@@ -36,6 +42,37 @@ struct VideoPreviewView: View {
 
             withAnimation(.easeOut(duration: 0.4)) {
                 showControls = true
+            }
+
+            // 长视频提示
+            if viewModel.duration > 300 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        showLongVideoTip = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            showLongVideoTip = false
+                        }
+                    }
+                }
+            }
+
+            // 新手引导：首次播放时显示"点击画面播放/暂停"
+            let hasShownPlay = UserDefaults.standard.bool(forKey: "hasShownPlayGuide")
+            if !hasShownPlay {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        showPlayGuide = true
+                        hasShownPlayGuide = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            showPlayGuide = false
+                        }
+                        UserDefaults.standard.set(true, forKey: "hasShownPlayGuide")
+                    }
+                }
             }
         }
         .onDisappear {
@@ -61,6 +98,18 @@ struct VideoPreviewView: View {
         VStack(spacing: 0) {
             topBar
 
+            if showLongVideoTip {
+                longVideoTipBanner
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            if showPlayGuide {
+                playGuideBubble
+                    .padding(.top, 12)
+                    .transition(.scale.combined(with: .opacity))
+            }
+
             Spacer()
         }
     }
@@ -71,8 +120,13 @@ struct VideoPreviewView: View {
 
             Spacer()
 
-            if viewModel.isHDR {
-                hdrBadge
+            HStack(spacing: 8) {
+                if isFromLivePhoto {
+                    liveBadge
+                }
+                if viewModel.isHDR {
+                    hdrBadge
+                }
             }
 
             Spacer()
@@ -199,6 +253,54 @@ struct VideoPreviewView: View {
         }
     }
 
+    private var liveBadge: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "livephoto")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.green)
+
+            Text("来自 Live Photo")
+                .font(.caption.weight(.bold))
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Capsule()
+                        .stroke(.white.opacity(0.2), lineWidth: 1.5)
+                )
+        )
+        .shadow(color: .black.opacity(0.2), radius: 8, y: 2)
+    }
+
+    private var longVideoTipBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "lightbulb.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.yellow)
+
+            Text("视频较长，拖动进度条可快速定位")
+                .font(.system(size: 13, weight: .medium))
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Capsule()
+                        .stroke(.white.opacity(0.15), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .padding(.top, 8)
+    }
+
     private var hdrBadge: some View {
         HStack(spacing: 5) {
             Image(systemName: "sun.max.fill")
@@ -225,9 +327,33 @@ struct VideoPreviewView: View {
     private var bottomControlArea: some View {
         FrameActionBar(
             videoURL: videoURL,
+            isFromLivePhoto: isFromLivePhoto,
             viewModel: viewModel,
-            captureViewModel: captureViewModel
+            captureViewModel: captureViewModel,
+            showCaptureGuide: $showCaptureGuide,
+            hasShownCaptureGuide: $hasShownCaptureGuide
         )
+    }
+
+    private var playGuideBubble: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "hand.tap.fill")
+                .font(.system(size: 12))
+            Text("点击画面播放/暂停")
+                .font(.system(size: 13, weight: .medium))
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Capsule()
+                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
     }
 }
 
@@ -242,21 +368,21 @@ private struct PlaybackControlOverlay: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            if isDragging {
-                HStack {
-                    Text(formatTime(timelineTime))
-                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.white)
+            HStack {
+                Text(formatTime(timelineTime))
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.white)
 
-                    Spacer()
+                Spacer()
 
+                if isDragging {
                     Text(formatTime(viewModel.duration))
                         .font(.system(size: 13, weight: .medium, design: .monospaced))
                         .foregroundColor(.white.opacity(0.6))
+                        .transition(.opacity)
                 }
-                .padding(.horizontal, 6)
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
+            .padding(.horizontal, 6)
 
             HStack(spacing: 10) {
                 playPauseButton
@@ -386,22 +512,26 @@ private struct PlaybackControlOverlay: View {
 
     private func formatTime(_ time: TimeInterval) -> String {
         let totalSeconds = Int(max(0, time))
+        let centiseconds = Int((max(0, time) - Double(totalSeconds)) * 100)
         let hours = totalSeconds / 3600
         let minutes = (totalSeconds % 3600) / 60
         let seconds = totalSeconds % 60
 
         if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+            return String(format: "%d:%02d:%02d.%02d", hours, minutes, seconds, centiseconds)
         } else {
-            return String(format: "%02d:%02d", minutes, seconds)
+            return String(format: "%02d:%02d.%02d", minutes, seconds, centiseconds)
         }
     }
 }
 
 private struct FrameActionBar: View {
     let videoURL: URL
+    let isFromLivePhoto: Bool
     @ObservedObject var viewModel: VideoPlayerViewModel
     @ObservedObject var captureViewModel: FrameCaptureViewModel
+    @Binding var showCaptureGuide: Bool
+    @Binding var hasShownCaptureGuide: Bool
 
     @State private var timelineTime: TimeInterval = 0
     @State private var captureButtonScale: CGFloat = 1.0
@@ -411,26 +541,53 @@ private struct FrameActionBar: View {
     @State private var rotationAngle: Double = 0
 
     var body: some View {
-        HStack(spacing: 50) {
-            frameStepButton(
-                systemImage: "backward.frame.fill",
-                accessibilityLabel: "上一针",
-                offset: -1,
-                scale: $leftStepScale
-            )
+        VStack(spacing: 8) {
+            if showCaptureGuide {
+                captureGuideToast
+                    .transition(.scale.combined(with: .opacity))
+            }
 
-            captureButton
+            HStack(spacing: 50) {
+                frameStepButton(
+                    systemImage: "backward.frame.fill",
+                    accessibilityLabel: "上一针",
+                    offset: -1,
+                    scale: $leftStepScale
+                )
 
-            frameStepButton(
-                systemImage: "forward.frame.fill",
-                accessibilityLabel: "下一针",
-                offset: 1,
-                scale: $rightStepScale
-            )
+                ZStack {
+                    captureButton
+                }
+                .overlay(alignment: .top) {
+                    // 捕获数量角标
+                    if !captureViewModel.capturedFrames.isEmpty {
+                        badgeCount
+                    }
+                }
+
+                frameStepButton(
+                    systemImage: "forward.frame.fill",
+                    accessibilityLabel: "下一针",
+                    offset: 1,
+                    scale: $rightStepScale
+                )
+            }
         }
         .padding(.top, 24)
         .padding(.bottom, 32)
         .frame(maxWidth: .infinity)
+        .overlay(alignment: .bottom) {
+            // 帧序号显示：当前帧 / 总帧数
+            HStack(spacing: 4) {
+                Image(systemName: "film")
+                    .font(.system(size: 9))
+                    .foregroundColor(.white.opacity(0.5))
+                Text("\(viewModel.currentFrameIndex + 1)/\(viewModel.totalFrames)")
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            .padding(.bottom, 8)
+        }
         .onAppear {
             timelineTime = viewModel.currentTime
         }
@@ -520,12 +677,70 @@ private struct FrameActionBar: View {
         )
     }
 
+    private var badgeCount: some View {
+        Text("\(captureViewModel.capturedFrames.count)")
+            .font(.system(size: 12, weight: .bold))
+            .foregroundColor(.white)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(
+                Capsule()
+                    .fill(.red)
+            )
+            .shadow(color: .red.opacity(0.5), radius: 4, y: 2)
+            .offset(y: -8)
+            .transition(.scale.combined(with: .opacity))
+    }
+
+    private var captureGuideToast: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.green)
+            Text("已捕获，可继续抓取更多")
+                .font(.system(size: 13, weight: .medium))
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Capsule()
+                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+    }
+
     private func captureFrame() {
+        let source: FrameSource = isFromLivePhoto
+            ? .livePhoto(assetID: videoURL.lastPathComponent)
+            : .video(url: videoURL)
         captureViewModel.captureFrame(
             from: videoURL,
             at: timelineTime,
-            videoName: videoURL.lastPathComponent
+            videoName: videoURL.lastPathComponent,
+            source: source
         )
+
+        // 新手引导：首次捕获时显示"已捕获，可继续抓取更多"
+        let hasShownCapture = UserDefaults.standard.bool(forKey: "hasShownCaptureGuide")
+        if !hasShownCapture {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    showCaptureGuide = true
+                    hasShownCaptureGuide = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        showCaptureGuide = false
+                    }
+                    UserDefaults.standard.set(true, forKey: "hasShownCaptureGuide")
+                }
+            }
+        }
     }
 
     private func frameStepButton(
@@ -632,6 +847,7 @@ struct VideoPreviewView_Previews: PreviewProvider {
     static var previews: some View {
         VideoPreviewView(
             videoURL: URL(string: "file://test.mp4")!,
+            isFromLivePhoto: false,
             viewModel: VideoPlayerViewModel(),
             captureViewModel: FrameCaptureViewModel(),
             onBack: {}

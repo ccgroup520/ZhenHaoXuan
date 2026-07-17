@@ -58,4 +58,14 @@ struct CapturedFrame: Identifiable {
     func loadFullImage() -> UIImage? {
         FrameStore.shared.fullImage(fileName: imageFileName)
     }
+
+    /// 导出时的文件名，格式：视频名_时间点（如：生日party_01m23s.jpg）
+    func exportFileName(extension: String) -> String {
+        let name = (videoName as NSString).deletingPathExtension
+        let totalSeconds = Int(timestamp.rounded())
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        let timeStr = String(format: "%02dm%02ds", minutes, seconds)
+        return "\(name)_\(timeStr).\(`extension`)"
+    }
 }

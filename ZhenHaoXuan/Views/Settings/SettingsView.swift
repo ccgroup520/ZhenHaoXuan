@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var showVIPView = false
     @State private var showSignIn = false
     @State private var showSignOutConfirm = false
+    @State private var showPNGSpeedWarning = false
 
     var body: some View {
         ZStack {
@@ -44,6 +45,11 @@ struct SettingsView: View {
             }
         } message: {
             Text("确定要退出登录吗？退出后不会影响已购买的会员。")
+        }
+        .alert("导出提示", isPresented: $showPNGSpeedWarning) {
+            Button("知道了", role: .cancel) {}
+        } message: {
+            Text("无损格式导出速度较慢，请耐心等待")
         }
         .alert("购买失败", isPresented: $vipManager.showError) {
             Button("确定", role: .cancel) {}
@@ -139,7 +145,7 @@ struct SettingsView: View {
                     Text("升级会员")
                         .font(.headline)
 
-                    Text("无限导出 · HDR支持")
+                    Text("无限导出 · 全分辨率")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -201,7 +207,7 @@ struct SettingsView: View {
             )) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
-                        Text("保留 HDR 信息")
+                        Text("HDR 导出")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                         
@@ -214,7 +220,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    Text(vipManager.canUseHDR ? "保存高动态范围颜色信息" : "升级会员解锁HDR导出")
+                    Text(vipManager.canUseHDR ? "保留 HDR 高动态范围信息" : "升级会员解锁 HDR 导出")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -226,6 +232,9 @@ struct SettingsView: View {
             ForEach(ExportQuality.allCases, id: \.self) { quality in
                 Button(action: {
                     exportSettings.quality = quality
+                    if quality == .lossless && exportSettings.format == .png {
+                        showPNGSpeedWarning = true
+                    }
                 }) {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {

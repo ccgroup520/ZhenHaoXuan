@@ -5,7 +5,7 @@
   ],
   "products" : [
     {
-      "displayPrice" : "48.00",
+      "displayPrice" : "68.00",
       "familyShareable" : false,
       "internalID" : "com.zhenhaoxuan.vip.permanent",
       "localizations" : [
@@ -48,7 +48,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "无限导出，每月自动续费",
+              "description" : "每日30张导出，自动续费",
               "displayName" : "月度会员",
               "locale" : "zh_CN"
             }
@@ -69,7 +69,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "无限导出，每年自动续费",
+              "description" : "每日100张导出，自动续费",
               "displayName" : "年度会员",
               "locale" : "zh_CN"
             }

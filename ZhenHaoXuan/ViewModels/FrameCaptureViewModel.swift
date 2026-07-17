@@ -17,7 +17,7 @@ final class FrameCaptureViewModel: ObservableObject {
         }
     }
 
-    func captureFrame(from videoURL: URL, at time: TimeInterval, videoName: String) {
+    func captureFrame(from videoURL: URL, at time: TimeInterval, videoName: String, source: FrameSource = .video(url: URL(fileURLWithPath: ""))) {
         guard !isCapturing else { return }
         isCapturing = true
         feedbackGenerator.prepare()
@@ -31,7 +31,7 @@ final class FrameCaptureViewModel: ObservableObject {
                     image: image,
                     timestamp: time,
                     videoName: videoName,
-                    source: .video(url: videoURL)
+                    source: source
                 )
 
                 self.isCapturing = false

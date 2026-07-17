@@ -57,9 +57,12 @@ actor FrameStore {
     // MARK: - Public
 
     /// 读取所有已保存的帧（只加载小缩略图，不占内存）
+    /// 按捕获时间倒序排列（最新捕获的在最前面）
     func loadAll() -> [CapturedFrame] {
         let records = readIndex()
-        return records.compactMap { record in
+        return records
+            .sorted { $0.captureDate > $1.captureDate }
+            .compactMap { record in
             let thumbURL = directoryURL.appendingPathComponent(record.thumbnailFileName)
             guard let thumbnail = UIImage(contentsOfFile: thumbURL.path) else { return nil }
             return CapturedFrame(

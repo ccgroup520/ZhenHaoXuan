@@ -73,7 +73,8 @@ struct DraggableProgressBar: View {
 
         let location = value.location.x - sidePadding
         let finalProgress = clampedProgress(location / barWidth)
-        updateDrag(to: finalProgress)
+        dragProgress = finalProgress
+        progress = finalProgress
         onSeek(finalProgress * duration)
 
         isDragging = false

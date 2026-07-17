@@ -348,7 +348,7 @@ struct FrameGalleryView: View {
     /// 预扣模式：先冻结额度，成功再扣款，失败则释放
     private func checkExportLimit(count: Int, performExport: @escaping () -> Void) {
         // 永久会员直接放行
-        if vipManager.isPaidUser {
+        if vipManager.currentTier == .permanent {
             performExport()
             return
         }
